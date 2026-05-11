@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:rack_code",
+ "creation": "2026-05-11 09:46:04.882707",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "rack_code",
+  "warehouse",
+  "total_cells",
+  "occupied_cells",
+  "available_cells",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "rack_code",
+   "fieldtype": "Data",
+   "label": "Rack Code",
+   "unique": 1
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "total_cells",
+   "fieldtype": "Int",
+   "label": "Total Cells"
+  },
+  {
+   "fieldname": "occupied_cells",
+   "fieldtype": "Int",
+   "label": "Occupied Cells"
+  },
+  {
+   "fieldname": "available_cells",
+   "fieldtype": "Int",
+   "label": "Available Cells",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nInactive\nFull"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-11 10:01:49.889365",
+ "modified_by": "Administrator",
+ "module": "Warehouse Management",
+ "name": "Rack",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
