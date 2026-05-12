@@ -5,7 +5,18 @@ app_description = "Warehouse Management System"
 app_email = "dev3@rakonex.com"
 app_license = "mit"
 
-# Apps
+# Fixtures
+# --------
+
+fixtures = [
+    {
+        "doctype": "Custom Field",
+        "filters": {
+            "dt": "Purchase Receipt Item",
+            "fieldname": ["in", ["rack", "bin", "date_of_assignment", "expiry_date"]]
+        }
+    }
+]
 # ------------------
 
 # required_apps = []
