@@ -11,6 +11,11 @@ class BinAssignment(Document):
 		if self.bin:
 			storage_bin = frappe.get_doc("Storage Bin", self.bin)
 			storage_bin.status = "Occupied"
+			storage_bin.bin_assignment_record = self.name
+			storage_bin.assigned_item = self.item
+			storage_bin.uom = self.uom
+			storage_bin.assigned_on = self.doa
+			storage_bin.expiry_date = self.expiry_date
 			storage_bin.save(ignore_permissions=True)
 
 	def after_delete(self):
@@ -18,6 +23,11 @@ class BinAssignment(Document):
 		if self.bin:
 			storage_bin = frappe.get_doc("Storage Bin", self.bin)
 			storage_bin.status = "Empty"
+			storage_bin.bin_assignment_record = None
+			storage_bin.assigned_item = None
+			storage_bin.uom = None
+			storage_bin.assigned_on = None
+			storage_bin.expiry_date = None
 			storage_bin.save(ignore_permissions=True)
 
 def create_bin_assignments_on_purchase_receipt_submit(doc, method):
@@ -31,6 +41,7 @@ def create_bin_assignments_on_purchase_receipt_submit(doc, method):
 				"item": item.item_code,
 				"rack": item.rack,
 				"bin": item.bin,
+				"uom": item.uom,
 				"quantity": item.qty,
 				"expiry_date": item.get("expiry_date"),
 				"doa": item.get("date_of_assignment"),

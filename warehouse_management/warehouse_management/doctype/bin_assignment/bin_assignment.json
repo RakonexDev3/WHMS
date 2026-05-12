@@ -1,15 +1,19 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "naming_series:",
  "creation": "2026-05-11 13:21:06.429273",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "rack",
   "item",
+  "uom",
   "doa",
+  "naming_series",
   "column_break_ziad",
   "bin",
+  "item_name",
   "quantity",
   "expiry_date",
   "references_section",
@@ -76,15 +80,37 @@
    "fieldname": "expiry_date",
    "fieldtype": "Date",
    "label": "Expiry Date"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UoM",
+   "options": "UOM"
+  },
+  {
+   "fetch_from": "item.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "{bin}.-.DD./.MM./.YY.-.#####",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 14:06:21.309733",
+ "modified": "2026-05-12 14:08:52.786372",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Bin Assignment",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

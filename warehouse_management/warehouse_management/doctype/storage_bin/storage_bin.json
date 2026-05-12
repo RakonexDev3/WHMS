@@ -11,7 +11,15 @@
   "status",
   "column_break_bsdu",
   "rack",
-  "warehouse"
+  "warehouse",
+  "references_section",
+  "bin_assignment_record",
+  "assigned_item",
+  "assigned_on",
+  "column_break_ilbz",
+  "item_name",
+  "uom",
+  "quantity"
  ],
  "fields": [
   {
@@ -52,12 +60,58 @@
   {
    "fieldname": "column_break_bsdu",
    "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.status == \"Occupied\";",
+   "fieldname": "references_section",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "bin_assignment_record",
+   "fieldtype": "Data",
+   "label": "Bin Assignment Record"
+  },
+  {
+   "fieldname": "assigned_item",
+   "fieldtype": "Link",
+   "label": "Assigned Item",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assigned_on",
+   "fieldtype": "Date",
+   "label": "Assigned On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ilbz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UoM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-12 08:23:38.870145",
+ "modified": "2026-05-12 12:40:04.135208",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Storage Bin",
