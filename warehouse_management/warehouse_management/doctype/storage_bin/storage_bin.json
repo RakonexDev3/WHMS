@@ -7,17 +7,11 @@
  "engine": "InnoDB",
  "field_order": [
   "bin_id",
-  "rack",
-  "warehouse",
-  "item",
-  "quantity",
   "cells_occupied",
-  "date_of_allotment",
-  "expiry_date",
   "status",
-  "purchase_receipt",
-  "batch_no",
-  "notes"
+  "column_break_bsdu",
+  "rack",
+  "warehouse"
  ],
  "fields": [
   {
@@ -44,59 +38,26 @@
    "reqd": 1
   },
   {
-   "fieldname": "item",
-   "fieldtype": "Link",
-   "label": "Item",
-   "options": "Item"
-  },
-  {
-   "fieldname": "quantity",
-   "fieldtype": "Float",
-   "label": "Quantity"
-  },
-  {
+   "default": "1",
    "fieldname": "cells_occupied",
    "fieldtype": "Int",
    "label": "Cells Occupied"
   },
   {
-   "fieldname": "date_of_allotment",
-   "fieldtype": "Date",
-   "label": "Date of Allotment"
-  },
-  {
-   "fieldname": "expiry_date",
-   "fieldtype": "Date",
-   "label": "Expiry Date"
-  },
-  {
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Occupied\nEmpty\nReserved\nExpired"
+   "options": "Empty\nOccupied\nReserved\nExpired"
   },
   {
-   "fieldname": "purchase_receipt",
-   "fieldtype": "Link",
-   "label": "Purchase Receipt",
-   "options": "Purchase Receipt"
-  },
-  {
-   "fieldname": "batch_no",
-   "fieldtype": "Link",
-   "label": "Batch No",
-   "options": "Batch"
-  },
-  {
-   "fieldname": "notes",
-   "fieldtype": "Small Text",
-   "label": "Notes"
+   "fieldname": "column_break_bsdu",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 11:44:29.140907",
+ "modified": "2026-05-12 08:23:38.870145",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Storage Bin",

@@ -23,8 +23,10 @@
   {
    "fieldname": "warehouse",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Warehouse",
-   "options": "Warehouse"
+   "options": "Warehouse",
+   "reqd": 1
   },
   {
    "fieldname": "total_cells",
@@ -54,7 +56,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 12:09:00.102946",
+ "modified": "2026-05-11 12:28:37.894836",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Rack",

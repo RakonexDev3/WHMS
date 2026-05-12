@@ -19,7 +19,7 @@ class StorageBin(Document):
             self.update_rack_occupancy()
             
             
-    def on_trash(self):
+    def after_delete(self):
             self.update_rack_occupancy()
             
             
