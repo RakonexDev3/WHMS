@@ -165,4 +165,45 @@ def get_purchase_order_item_details():
 
 		}
 
+@frappe.whitelist(methods=["GET"])
+def get_templates_without_variants():
+	"""
+	Return all Item Templates that do not have any variants created.
+	"""
 
+	try:
+
+		templates = frappe.db.sql(
+			"""
+			SELECT
+				i.name,
+				i.item_name
+			FROM `tabItem` i
+			WHERE
+				i.has_variants = 1
+				AND NOT EXISTS (
+					SELECT 1
+					FROM `tabItem` v
+					WHERE v.variant_of = i.name
+				)
+			ORDER BY i.item_name
+			""",
+			as_dict=True
+		)
+
+		return {
+			"status": "success",
+			"data": templates
+		}
+
+	except Exception as e:
+		frappe.log_error(
+			frappe.get_traceback(),
+			"Get Templates Without Variants Error"
+		)
+
+		return {
+			"status": "error",
+			"message": str(e),
+			"data": []
+		}
