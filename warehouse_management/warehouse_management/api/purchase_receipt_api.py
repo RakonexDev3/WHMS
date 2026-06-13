@@ -116,6 +116,13 @@ def create_purchase_receipt_from_po():
 			# ----------------------------------------------------------
 			# Create Purchase Receipt Item
 			# ----------------------------------------------------------
+
+			# Determine target warehouse
+			target_warehouse = warehouse
+
+			if item_data.get("surprise_variant"):
+				target_warehouse = f"Bay {warehouse}"
+
 			pr_item = {
 				"item_code": item_code,
 				"qty": item_data.get("quantity", po_item.qty),
@@ -127,6 +134,7 @@ def create_purchase_receipt_from_po():
 					"quantity",
 					po_item.qty
 				),
+				"warehouse": target_warehouse,
 				"rack": item_data.get("rack"),
 				"bin": item_data.get("bin"),
 				"expiry_date": item_data.get("expiry_date"),

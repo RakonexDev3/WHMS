@@ -207,3 +207,109 @@ def get_templates_without_variants():
 			"message": str(e),
 			"data": []
 		}
+
+@frappe.whitelist(methods=["POST"])
+def create_variant_creation_request():
+	"""
+	Create a Variant Creation Request.
+
+	Request:
+	{
+		"item_template": "TRU-2297512-T",
+		"variants": [
+			{
+				"variant_name": "Test A",
+				"notes": "Test Notes A"
+			},
+			{
+				"variant_name": "Test B",
+				"notes": "Test Notes B"
+			}
+		]
+	}
+	"""
+
+	try:
+		data = frappe.local.request.get_json()
+
+		item_template = data.get("item_template")
+		variants = data.get("variants", [])
+
+		# --------------------------------------------------
+		# Validations
+		# --------------------------------------------------
+		if not item_template:
+			frappe.throw("item_template is required")
+
+		if not variants:
+			frappe.throw("At least one variant is required")
+
+		if not frappe.db.exists("Item", item_template):
+			frappe.throw("Item Template {0} does not exist").format(item_template)
+
+		# --------------------------------------------------
+		# Create Variant Creation Request
+		# --------------------------------------------------
+		vcr = frappe.get_doc({
+			"doctype": "Variant Creation Request",
+			"item_template": item_template,
+			"variants": []
+		})
+
+		for variant in variants:
+
+			variant_name = variant.get("variant_name")
+			notes = variant.get("notes")
+
+			if not variant_name:
+				frappe.throw("variant_name is required for all variants")
+
+			vcr.append(
+				"variants",
+				{
+					"variant_name": variant_name,
+					"notes": notes
+				}
+			)
+
+		# --------------------------------------------------
+		# Save
+		# --------------------------------------------------
+		vcr.insert(ignore_permissions=True)
+
+		frappe.db.commit()
+
+		return {
+			"status": "success",
+			"message": ("Variant Creation Request created successfully"),
+			"data": {
+				"name": vcr.name,
+				"doctype": "Variant Creation Request",
+				"status": vcr.docstatus
+			}
+		}
+
+	except frappe.ValidationError as e:
+		frappe.log_error(
+			frappe.get_traceback(),
+			"Variant Creation Request Error"
+		)
+
+		return {
+			"status": "error",
+			"message": ("Validation Error: {0}").format(str(e)),
+			"data": None
+		}
+
+	except Exception as e:
+		frappe.log_error(
+			frappe.get_traceback(),
+			"Variant Creation Request Error"
+		)
+
+		return {
+			"status": "error",
+			"message": ("Error creating Variant Creation Request: {0}")
+			.format(str(e)),
+			"data": None
+		}
