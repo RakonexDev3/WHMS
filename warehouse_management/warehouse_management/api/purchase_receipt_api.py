@@ -71,11 +71,17 @@ def create_purchase_receipt_from_po():
 			# ----------------------------------------------------------
 			if item_data.get("surprise_variant"):
 
-				variant_attribute = item_data.get("variant_attribute")
+				variant_attributes = item_data.get("variant_attribute")
 
-				if not variant_attribute:
+				if not variant_attributes:
 					frappe.throw(
 						_("variant_attribute is required when surprise_variant is enabled for item {0}")
+						.format(item_code)
+					)
+
+				if not isinstance(variant_attributes, list):
+					frappe.throw(
+						_("variant_attribute must be a list for item {0}")
 						.format(item_code)
 					)
 
@@ -103,13 +109,24 @@ def create_purchase_receipt_from_po():
 					# Remove any existing attributes
 					template_item.attributes = []
 
-					# Add requested attribute
-					template_item.append(
-						"attributes",
-						{
-							"attribute": variant_attribute
-						}
-					)
+					# Add requested attributes
+					for attribute in variant_attributes:
+
+						if not attribute:
+							continue
+
+						template_item.append(
+							"attributes",
+							{
+								"attribute": attribute
+							}
+						)
+
+					if not template_item.attributes:
+						frappe.throw(
+							_("At least one valid variant attribute is required for item {0}")
+							.format(item_code)
+						)
 
 					template_item.insert(ignore_permissions=True)
 
