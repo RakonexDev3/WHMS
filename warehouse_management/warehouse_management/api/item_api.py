@@ -76,6 +76,8 @@ def get_purchase_order_item_details():
 
 			"uom": po_item.get("uom"),
 
+			"qty": po_item.get("qty"),
+
 			"rate": po_item.get("rate"),
 
 			"purchase_order_item": po_item.name,
