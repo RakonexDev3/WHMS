@@ -313,3 +313,35 @@ def create_variant_creation_request():
 			.format(str(e)),
 			"data": None
 		}
+
+
+@frappe.whitelist()
+def get_purchase_order_item_list(po_name):
+    po = frappe.get_doc("Purchase Order", po_name)
+
+    items = []
+    brand_set = set()
+
+    for item in po.items:
+        items.append({
+            "item_code": item.item_code,
+            "item_name": item.item_name,
+            "brand": item.brand,
+            "qty": item.qty
+        })
+
+        if item.brand:
+            brand_set.add(item.brand)
+
+    frappe.local.response.update({
+		"status": "success",
+		"data": {
+            "name": po.name,
+            "supplier": po.supplier,
+            "supplier_name": po.supplier_name,
+            "brand_list": sorted(list(brand_set)),
+			"items": items
+		}
+	})
+	
+    return
