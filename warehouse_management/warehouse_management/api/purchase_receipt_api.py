@@ -17,54 +17,85 @@ def create_purchase_receipt_from_po():
 		# Get request data
 		data = frappe.local.request.get_json()
 
-		po_id = data.get("po_id")
 		warehouse = data.get("warehouse")
 		items_data = data.get("items", [])
 
-		# Validate required fields
-		if not po_id:
-			frappe.throw(_("Purchase Order ID is required"))
+		if not items_data:
+			frappe.throw("Items data is required")
+
+		po_names = list({
+			item.get("po_id")
+			for item in items_data
+			if item.get("po_id")
+		})
+
+		if not po_names:
+			frappe.throw("At least one Purchase Order is required")
+
+		po_details = frappe.get_all(
+			"Purchase Order",
+			filters={"name": ["in", po_names]},
+			fields=["name", "supplier", "supplier_name"]
+		)
+
+		if len(po_details) != len(po_names):
+			frappe.throw("One or more Purchase Orders were not found")
+
+		supplier_set = {po.supplier for po in po_details}
+
+		if len(supplier_set) > 1:
+			frappe.throw("All selected Purchase Orders must belong to the same supplier.")
+
+		supplier = po_details[0].supplier
 
 		if not warehouse:
-			frappe.throw(_("Warehouse is required"))
-
-		if not items_data:
-			frappe.throw(_("Items data is required"))
-
-		# Fetch Purchase Order
-		po = frappe.get_doc("Purchase Order", po_id)
-
-		if not po:
-			frappe.throw(_("Purchase Order {0} not found").format(po_id))
+			frappe.throw("Warehouse is required")
 
 		# Create Purchase Receipt
 		pr = frappe.get_doc({
 			"doctype": "Purchase Receipt",
-			"purchase_order": po_id,
-			"supplier": po.supplier,
+			"supplier": supplier,
 			"posting_date": frappe.utils.today(),
 			"warehouse": warehouse,
 			"items": []
 		})
 
 		# Create PO item lookup map
-		po_items_map = {item.item_code: item for item in po.items}
+		po_items = frappe.get_all(
+			"Purchase Order Item",
+			filters={"parent": ["in", po_names]},
+			fields=[
+				"name",
+				"parent",
+				"item_code",
+				"qty",
+				"uom",
+				"stock_uom",
+				"rate"
+			]
+		)
+
+		po_items_map = {
+			(item.parent, item.item_code): item
+			for item in po_items
+		}
 
 		# Process incoming items
 		for item_data in items_data:
 
+			po_id = item_data.get("po_id")
 			item_code = item_data.get("item_code")
 
-			if not item_code:
-				frappe.throw(_("Item code is required for all items"))
+			if not po_id:
+				frappe.throw("PO ID is required for all items")
 
-			# Get corresponding PO item
-			po_item = po_items_map.get(item_code)
+			if not item_code:
+				frappe.throw("Item code is required for all items")
+
+			po_item = po_items_map.get((po_id, item_code))
 
 			if not po_item:
-				frappe.throw(
-					_("Item {0} not found in Purchase Order").format(item_code)
-				)
+				frappe.throw(f"Item {item_code} not found in Purchase Order {po_id}")
 
 			# ----------------------------------------------------------
 			# Create Item Template if surprise variant is enabled
@@ -75,15 +106,11 @@ def create_purchase_receipt_from_po():
 
 				if not variant_attributes:
 					frappe.throw(
-						_("variant_attribute is required when surprise_variant is enabled for item {0}")
-						.format(item_code)
+						f"variant_attribute is required when surprise_variant is enabled for item {item_code}"
 					)
 
 				if not isinstance(variant_attributes, list):
-					frappe.throw(
-						_("variant_attribute must be a list for item {0}")
-						.format(item_code)
-					)
+					frappe.throw(f"variant_attribute must be a list for item {item_code}")
 
 				template_item_code = f"{item_code}-T"
 
@@ -123,10 +150,7 @@ def create_purchase_receipt_from_po():
 						)
 
 					if not template_item.attributes:
-						frappe.throw(
-							_("At least one valid variant attribute is required for item {0}")
-							.format(item_code)
-						)
+						frappe.throw(f"At least one valid variant attribute is required for item {item_code}")
 
 					template_item.insert(ignore_permissions=True)
 
@@ -155,17 +179,12 @@ def create_purchase_receipt_from_po():
 				"rack": item_data.get("rack"),
 				"bin": item_data.get("bin"),
 				"expiry_date": item_data.get("expiry_date"),
-				"batch_no": item_data.get("batch_no"),
 				"stock_uom": (
 					po_item.stock_uom
 					if hasattr(po_item, "stock_uom")
 					else po_item.uom
 				),
 			}
-
-			# Optional batch number from PO
-			if not pr_item.get("batch_no"):
-				pr_item["batch_no"] = po_item.get("batch_no")
 
 			pr.append("items", pr_item)
 
@@ -176,7 +195,7 @@ def create_purchase_receipt_from_po():
 
 		return {
 			"status": "success",
-			"message": _("Purchase Receipt created successfully"),
+			"message": "Purchase Receipt created successfully",
 			"data": {
 				"name": pr.name,
 				"doctype": "Purchase Receipt",
@@ -192,7 +211,7 @@ def create_purchase_receipt_from_po():
 
 		return {
 			"status": "error",
-			"message": _("Validation Error: {0}").format(str(e)),
+			"message": f"Validation Error: {str(e)}",
 			"data": None
 		}
 
@@ -204,6 +223,6 @@ def create_purchase_receipt_from_po():
 
 		return {
 			"status": "error",
-			"message": _("Error creating Purchase Receipt: {0}").format(str(e)),
+			"message": f"Error creating Purchase Receipt: {str(e)}",
 			"data": None
 		}
