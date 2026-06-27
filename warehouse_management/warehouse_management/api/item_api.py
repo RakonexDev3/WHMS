@@ -318,32 +318,65 @@ def create_variant_creation_request():
 
 
 @frappe.whitelist()
-def get_purchase_order_item_list(po_name):
-    po = frappe.get_doc("Purchase Order", po_name)
+def get_purchase_order_item_list(po_names):
+    po_names = frappe.parse_json(po_names)
+
+    # Fetch Purchase Order details
+    po_details = frappe.get_all(
+        "Purchase Order",
+        filters={"name": ["in", po_names]},
+        fields=["name", "supplier", "supplier_name"]
+    )
+
+    if len(po_details) != len(po_names):
+        frappe.throw("One or more Purchase Orders were not found.")
+
+    # Validate that all POs belong to the same supplier
+    supplier_set = {po.supplier for po in po_details}
+
+    if len(supplier_set) > 1:
+        frappe.throw("All selected Purchase Orders must belong to the same supplier.")
+
+    supplier = po_details[0].supplier
+    supplier_name = po_details[0].supplier_name
+
+    # Fetch all items from the selected Purchase Orders
+    po_items = frappe.get_all(
+        "Purchase Order Item",
+        filters={"parent": ["in", po_names]},
+        fields=[
+            "parent",
+            "item_code",
+            "item_name",
+            "brand",
+            "qty"
+        ],
+        order_by="parent, idx"
+    )
 
     items = []
     brand_set = set()
 
-    for item in po.items:
+    for item in po_items:
         items.append({
             "item_code": item.item_code,
             "item_name": item.item_name,
             "brand": item.brand,
-            "qty": item.qty
+            "qty": item.qty,
+            "po_id": item.parent
         })
 
         if item.brand:
             brand_set.add(item.brand)
 
     frappe.local.response.update({
-		"status": "success",
-		"data": {
-            "name": po.name,
-            "supplier": po.supplier,
-            "supplier_name": po.supplier_name,
-            "brand_list": sorted(list(brand_set)),
-			"items": items
-		}
-	})
-	
+        "status": "success",
+        "data": {
+            "supplier": supplier,
+            "supplier_name": supplier_name,
+            "brand_list": sorted(brand_set),
+            "items": items
+        }
+    })
+
     return
