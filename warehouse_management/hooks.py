@@ -157,23 +157,11 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"warehouse_management.tasks.all"
-# 	],
-# 	"daily": [
-# 		"warehouse_management.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"warehouse_management.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"warehouse_management.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"warehouse_management.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"warehouse_management.tasks.check_critical_stock"
+	],
+}
 
 # Testing
 # -------
