@@ -15,6 +15,18 @@ fixtures = [
             "dt": "Purchase Receipt Item",
             "fieldname": ["in", ["rack", "bin", "date_of_assignment", "expiry_date"]]
         }
+    },
+    {
+        "doctype": "Workflow",
+        "filters": [
+            ["name", "in", ["Material Request Approval"]]
+        ]
+    },
+    {
+        "doctype": "Workflow State",
+        "filters": [
+            ["workflow_state_name", "in", ["Draft", "Submitted", "Pending"]]
+        ]
     }
 ]
 # ------------------
