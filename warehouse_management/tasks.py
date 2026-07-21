@@ -48,7 +48,7 @@ def send_notification(warehouse, items):
     employees = frappe.get_all(
         "Employee",
         filters={
-            "restrict_warehouse": warehouse,
+            "active_warehouse": warehouse,
         },
         fields=["user_id"],
     )

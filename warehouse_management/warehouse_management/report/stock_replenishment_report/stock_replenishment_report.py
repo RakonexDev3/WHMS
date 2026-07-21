@@ -95,15 +95,22 @@ def get_data(filters):
     roles = frappe.get_roles(frappe.session.user)
 
     if "Warehouse Manager" in roles:
-        restricted_warehouse = frappe.db.get_value(
+        employee = frappe.db.get_value(
             "Employee",
-            {"user_id": frappe.session.user},
-            "restrict_warehouse",
+            {
+                "user_id": frappe.session.user,
+                "status": "Active",
+            },
+            ["active_warehouse", "allow_access_to_all_warehouses"],
+            as_dict=True,
         )
 
-        if restricted_warehouse:
+        if (
+            employee.active_warehouse
+            and not employee.allow_access_to_all_warehouses
+        ):
             query = query.where(
-                ItemReorder.warehouse == restricted_warehouse
+                ItemReorder.warehouse == employee.active_warehouse
             )
 
     if filters.get("warehouse"):
@@ -134,6 +141,7 @@ def get_material_request(items):
 
     mr = frappe.new_doc("Material Request")
     mr.material_request_type = "Material Transfer"
+    mr.set_warehouse = items[0].get("warehouse")
 
     for row in items:
         mr.append(
