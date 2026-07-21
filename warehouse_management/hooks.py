@@ -140,10 +140,9 @@ fixtures = [
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
+permission_query_conditions = {
+	"Material Request": "warehouse_management.events.material_request.get_permission_query_conditions"
+}
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
@@ -163,6 +162,10 @@ fixtures = [
 doc_events = {
 	"Purchase Receipt": {
 		"on_submit": "warehouse_management.warehouse_management.doctype.bin_assignment.bin_assignment.create_bin_assignments_on_purchase_receipt_submit"
+	},
+	"Material Request": {
+		"validate": "warehouse_management.events.material_request.validate_warehouse_manager",
+		"on_update": "warehouse_management.events.material_request.notify_warehouse_manager"
 	}
 }
 
