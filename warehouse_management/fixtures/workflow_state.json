@@ -25,5 +25,14 @@
   "name": "Submitted",
   "style": "Primary",
   "workflow_state_name": "Submitted"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2026-07-20 17:18:24.353422",
+  "name": "Cancelled",
+  "style": "Danger",
+  "workflow_state_name": "Cancelled"
  }
 ]
