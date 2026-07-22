@@ -166,6 +166,9 @@ doc_events = {
 	"Material Request": {
 		"validate": "warehouse_management.events.material_request.validate_warehouse_manager",
 		"on_update": "warehouse_management.events.material_request.notify_warehouse_manager"
+	},
+	"Employee": {
+		"on_update": "warehouse_management.events.employee.update_warehouse_user_permission"
 	}
 }
 
