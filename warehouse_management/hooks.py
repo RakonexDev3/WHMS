@@ -27,6 +27,12 @@ fixtures = [
         "filters": [
             ["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled"]]
         ]
+    },
+    {
+        "doctype": "Property Setter",
+        "filters": [
+            ["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on"]]
+        ]
     }
 ]
 # ------------------
