@@ -147,7 +147,7 @@ def validate_warehouse_manager(doc, method=None):
         if row.from_warehouse
     }
 
-    if employee.active_warehouse not in source_warehouses:
+    if not employee or employee.active_warehouse not in source_warehouses:
         frappe.throw(_("You cannot approve or reject this Material Request."))
 
 
@@ -158,6 +158,9 @@ def get_permission_query_conditions(user=None):
         return ""
 
     employee = get_manager_details(user)
+
+    if not employee:
+        return ""
     
     if employee.allow_access_to_all_warehouses:
         return ""

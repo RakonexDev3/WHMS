@@ -105,10 +105,10 @@ def get_data(filters):
             as_dict=True,
         )
 
-        if (
-            employee.active_warehouse
-            and not employee.allow_access_to_all_warehouses
-        ):
+        if employee and not employee.allow_access_to_all_warehouses:
+            if not employee.active_warehouse:
+                return []
+
             query = query.where(
                 ItemReorder.warehouse == employee.active_warehouse
             )

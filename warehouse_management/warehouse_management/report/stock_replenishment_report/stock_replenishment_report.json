@@ -11,7 +11,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-07-11 17:49:16.526055",
+ "modified": "2026-07-22 13:21:18.417400",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Stock Replenishment Report",
@@ -22,31 +22,13 @@
  "report_type": "Script Report",
  "roles": [
   {
-   "role": "Item Manager"
+   "role": "System Manager"
+  },
+  {
+   "role": "Warehouse Manager"
   },
   {
    "role": "Stock Manager"
-  },
-  {
-   "role": "Stock User"
-  },
-  {
-   "role": "Sales User"
-  },
-  {
-   "role": "Purchase User"
-  },
-  {
-   "role": "Maintenance User"
-  },
-  {
-   "role": "Accounts User"
-  },
-  {
-   "role": "Manufacturing User"
-  },
-  {
-   "role": "Desk User"
   }
  ],
  "timeout": 0
