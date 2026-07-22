@@ -7,6 +7,12 @@ def update_warehouse_user_permission(doc, method=None):
     active_warehouse and allow_access_to_all_warehouses
     """
 
+    if not frappe.db.get_single_value(
+        "Warehouse Management Settings",
+        "enable_warehouse_user_permission",
+    ):
+        return
+
     if not doc.user_id:
         return
 
