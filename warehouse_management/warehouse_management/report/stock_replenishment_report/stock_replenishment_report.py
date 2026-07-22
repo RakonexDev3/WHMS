@@ -94,7 +94,7 @@ def get_data(filters):
 
     roles = frappe.get_roles(frappe.session.user)
 
-    if "Warehouse Manager" in roles:
+    if "Warehouse Manager" in roles and "System Manager" not in roles:
         employee = frappe.db.get_value(
             "Employee",
             {

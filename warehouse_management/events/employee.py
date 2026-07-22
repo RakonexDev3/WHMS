@@ -16,6 +16,9 @@ def update_warehouse_user_permission(doc, method=None):
     if not doc.user_id:
         return
 
+    if "System Manager" in frappe.get_roles(doc.user_id):
+        return
+
     permission_name = frappe.db.get_value(
         "User Permission",
         {

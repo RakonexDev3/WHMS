@@ -117,6 +117,19 @@ def get_manager_details(user):
     )
 
 
+def is_group_warehouse(warehouse):
+    if not warehouse:
+        return False
+
+    return bool(
+        frappe.db.get_value(
+            "Warehouse",
+            warehouse,
+            "is_group",
+        )
+    )
+
+
 def validate_warehouse_manager(doc, method=None):
     """Allow only the source Warehouse Manager to approve or reject."""
 
@@ -135,11 +148,23 @@ def validate_warehouse_manager(doc, method=None):
         return
     
     user = frappe.session.user
+    roles = frappe.get_roles(user)
 
-    if "Warehouse Manager" not in frappe.get_roles(user):
+    if "System Manager" in roles:
+        return
+
+    if "Warehouse Manager" not in roles:
         return
 
     employee = get_manager_details(user)
+
+    if not employee:
+        frappe.throw(
+            _("You cannot approve or reject this Material Request.")
+        )
+
+    if is_group_warehouse(employee.active_warehouse):
+        return
 
     source_warehouses = {
         row.from_warehouse
@@ -147,14 +172,18 @@ def validate_warehouse_manager(doc, method=None):
         if row.from_warehouse
     }
 
-    if not employee or employee.active_warehouse not in source_warehouses:
+    if employee.active_warehouse not in source_warehouses:
         frappe.throw(_("You cannot approve or reject this Material Request."))
 
 
 def get_permission_query_conditions(user=None):
     user = user or frappe.session.user
+    roles = frappe.get_roles(user)
 
-    if "Warehouse Manager" not in frappe.get_roles(user):
+    if "System Manager" in roles:
+        return ""
+
+    if "Warehouse Manager" not in roles:
         return ""
 
     employee = get_manager_details(user)
