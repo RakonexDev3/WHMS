@@ -41,7 +41,12 @@ def notify_source_warehouse_manager(doc, method=None):
         if not employee.user_id:
             continue
 
-        if "Warehouse Manager" not in frappe.get_roles(employee.user_id):
+        roles = frappe.get_roles(employee.user_id)
+
+        if "System Manager" in roles:
+            continue
+
+        if "Warehouse Manager" not in roles:
             continue
 
         if employee.active_warehouse not in source_warehouses:
@@ -89,7 +94,12 @@ def notify_target_warehouse_manager(doc, method=None):
         if not employee.user_id:
             continue
 
-        if "Warehouse Manager" not in frappe.get_roles(employee.user_id):
+        roles = frappe.get_roles(employee.user_id)
+
+        if "System Manager" in roles:
+            continue
+
+        if "Warehouse Manager" not in roles:
             continue
 
         frappe.get_doc({
