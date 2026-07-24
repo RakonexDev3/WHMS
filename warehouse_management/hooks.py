@@ -55,7 +55,9 @@ fixtures = [
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/warehouse_management/css/warehouse_management.css"
-# app_include_js = "/assets/warehouse_management/js/warehouse_management.js"
+app_include_js = [
+	"/assets/warehouse_management/js/stock_availability.js",
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/warehouse_management/css/warehouse_management.css"
