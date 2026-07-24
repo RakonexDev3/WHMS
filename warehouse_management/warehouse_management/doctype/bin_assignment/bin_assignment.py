@@ -14,6 +14,7 @@ class BinAssignment(Document):
 			storage_bin.bin_assignment_record = self.name
 			storage_bin.assigned_item = self.item
 			storage_bin.uom = self.uom
+			storage_bin.quantity = self.quantity
 			storage_bin.assigned_on = self.doa
 			storage_bin.expiry_date = self.expiry_date
 			storage_bin.save(ignore_permissions=True)
