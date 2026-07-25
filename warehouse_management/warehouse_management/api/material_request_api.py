@@ -55,7 +55,7 @@ def get_item_storage_bins(item_code):
         },
         fields=[
             "name",
-            "item_name",
+            "rack",
             "quantity",
             "uom",
         ],
@@ -68,6 +68,7 @@ def get_item_storage_bins(item_code):
         "storage_bins": [
             {
                 "bin": row.name,
+                "rack": row.rack,
                 "qty": row.quantity,
                 "uom": row.uom,
             }
