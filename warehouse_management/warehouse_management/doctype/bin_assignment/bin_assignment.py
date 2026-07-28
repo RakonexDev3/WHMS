@@ -48,15 +48,28 @@ class BinAssignment(Document):
 
 	def after_delete(self):
 		"""Set Storage Bin status to Empty when Bin Assignment is deleted"""
-		if self.bin:
-			storage_bin = frappe.get_doc("Storage Bin", self.bin)
+		if not self.bin:
+			return
+
+		storage_bin = frappe.get_doc("Storage Bin", self.bin)
+
+		storage_bin.quantity = max(
+			flt(storage_bin.quantity) - flt(self.quantity),
+			0,
+		)
+
+		if storage_bin.quantity > 0:
+			storage_bin.status = "Occupied"
+
+		else:
 			storage_bin.status = "Empty"
 			storage_bin.bin_assignment_record = None
 			storage_bin.assigned_item = None
 			storage_bin.uom = None
 			storage_bin.assigned_on = None
 			storage_bin.expiry_date = None
-			storage_bin.save(ignore_permissions=True)
+
+		storage_bin.save(ignore_permissions=True)
 
 def create_bin_assignments_on_purchase_receipt_submit(doc, method):
 	"""Create Bin Assignment records for Purchase Receipt items that have rack and bin assigned"""
