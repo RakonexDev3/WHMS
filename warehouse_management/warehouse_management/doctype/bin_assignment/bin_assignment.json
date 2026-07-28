@@ -10,6 +10,7 @@
   "item",
   "uom",
   "doa",
+  "assignment_type",
   "naming_series",
   "column_break_ziad",
   "bin",
@@ -19,6 +20,8 @@
   "references_section",
   "purchase_receipt",
   "batch_no",
+  "column_break_nqcz",
+  "material_request",
   "notes"
  ],
  "fields": [
@@ -101,12 +104,28 @@
    "label": "Naming Series",
    "options": "{bin}.-.DD./.MM./.YY.-.#####",
    "read_only": 1
+  },
+  {
+   "fieldname": "assignment_type",
+   "fieldtype": "Select",
+   "label": "Assignment Type",
+   "options": "Placing\nPicking"
+  },
+  {
+   "fieldname": "material_request",
+   "fieldtype": "Link",
+   "label": "Material Request",
+   "options": "Material Request"
+  },
+  {
+   "fieldname": "column_break_nqcz",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-12 14:08:52.786372",
+ "modified": "2026-07-28 14:43:13.961675",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Bin Assignment",
