@@ -1,6 +1,8 @@
 import frappe
 from frappe import _
 
+from warehouse_management.utils import get_managed_warehouses, get_manager_warehouse
+
 
 def notify_warehouse_manager(doc, method=None):
     if doc.material_request_type != "Material Transfer":
@@ -25,45 +27,28 @@ def notify_source_warehouse_manager(doc, method=None):
         if row.from_warehouse
     }
 
-    if not source_warehouses:
-        return
+    manager_warehouses = {
+        get_manager_warehouse(warehouse)
+        for warehouse in source_warehouses
+    }
 
-    employees = frappe.get_all(
-        "Employee",
-        filters={
-            "status": "Active",
-            "active_warehouse": ["is", "set"],
-        },
-        fields=["user_id", "active_warehouse"],
-    )
+    manager_warehouses.discard(None)
 
-    for employee in employees:
-        if not employee.user_id:
-            continue
-
-        roles = frappe.get_roles(employee.user_id)
-
-        if "System Manager" in roles:
-            continue
-
-        if "Warehouse Manager" not in roles:
-            continue
-
-        if employee.active_warehouse not in source_warehouses:
-            continue
-
-        frappe.get_doc({
-            "doctype": "Notification Log",
-            "subject": f"Material Request {doc.name} Requires Approval",
-            "email_content": (
-                f"Material Request {doc.name} is awaiting your approval. "
-                "Please review and take the required action."
-            ),
-            "for_user": employee.user_id,
-            "type": "Alert",
-            "document_type": "Material Request",
-            "document_name": doc.name
-        }).insert(ignore_permissions=True)
+    for user in get_warehouse_manager_users(manager_warehouses):
+        frappe.get_doc(
+            {
+                "doctype": "Notification Log",
+                "subject": f"Material Request {doc.name} Requires Approval",
+                "email_content": (
+                    f"Material Request {doc.name} is awaiting your approval. "
+                    "Please review and take the required action."
+                ),
+                "for_user": user,
+                "type": "Alert",
+                "document_type": "Material Request",
+                "document_name": doc.name,
+            }
+        ).insert(ignore_permissions=True)
 
 
 def notify_target_warehouse_manager(doc, method=None):
@@ -78,17 +63,47 @@ def notify_target_warehouse_manager(doc, method=None):
         if row.warehouse
     }
 
-    if not target_warehouses:
-        return
+    manager_warehouses = {
+        get_manager_warehouse(warehouse)
+        for warehouse in target_warehouses
+    }
+
+    manager_warehouses.discard(None)
+
+    for user in get_warehouse_manager_users(manager_warehouses):
+        frappe.get_doc(
+            {
+                "doctype": "Notification Log",
+                "subject": (
+                    f"Material Request {doc.name} "
+                    f"{doc.workflow_state}"
+                ),
+                "email_content": (
+                    f"Material Request {doc.name} has been "
+                    f"{doc.workflow_state}."
+                ),
+                "for_user": user,
+                "type": "Alert",
+                "document_type": "Material Request",
+                "document_name": doc.name,
+            }
+        ).insert(ignore_permissions=True)
+
+
+def get_warehouse_manager_users(warehouses):
+    if not warehouses:
+        return []
 
     employees = frappe.get_all(
         "Employee",
         filters={
             "status": "Active",
-            "active_warehouse": ["in", list(target_warehouses)],
+            "active_warehouse": ["in", list(warehouses)],
         },
-        fields=["user_id", "active_warehouse"],
+        fields=["user_id"],
     )
+
+    users = []
 
     for employee in employees:
         if not employee.user_id:
@@ -96,23 +111,15 @@ def notify_target_warehouse_manager(doc, method=None):
 
         roles = frappe.get_roles(employee.user_id)
 
-        if "System Manager" in roles:
-            continue
-
         if "Warehouse Manager" not in roles:
             continue
 
-        frappe.get_doc({
-            "doctype": "Notification Log",
-            "subject": f"Material Request {doc.name} {doc.workflow_state}",
-            "email_content": (
-                f"Material Request {doc.name} has been {doc.workflow_state}."
-            ),
-            "for_user": employee.user_id,
-            "type": "Alert",
-            "document_type": "Material Request",
-            "document_name": doc.name
-        }).insert(ignore_permissions=True)
+        if "System Manager" in roles:
+            continue
+
+        users.append(employee.user_id)
+
+    return list(set(users))
 
 
 def get_manager_details(user):
@@ -124,19 +131,6 @@ def get_manager_details(user):
         },
         ["active_warehouse", "allow_access_to_all_warehouses"],
         as_dict=True,
-    )
-
-
-def is_group_warehouse(warehouse):
-    if not warehouse:
-        return False
-
-    return bool(
-        frappe.db.get_value(
-            "Warehouse",
-            warehouse,
-            "is_group",
-        )
     )
 
 
@@ -173,8 +167,17 @@ def validate_warehouse_manager(doc, method=None):
             _("You cannot approve or reject this Material Request.")
         )
 
-    if is_group_warehouse(employee.active_warehouse):
+    if employee.allow_access_to_all_warehouses:
         return
+
+    if not employee.active_warehouse:
+        frappe.throw(
+            _("You cannot approve or reject this Material Request.")
+        )
+
+    managed_warehouses = set(
+        get_managed_warehouses(employee.active_warehouse)
+    )
 
     source_warehouses = {
         row.from_warehouse
@@ -182,8 +185,10 @@ def validate_warehouse_manager(doc, method=None):
         if row.from_warehouse
     }
 
-    if employee.active_warehouse not in source_warehouses:
-        frappe.throw(_("You cannot approve or reject this Material Request."))
+    if not source_warehouses.intersection(managed_warehouses):
+        frappe.throw(
+            _("You cannot approve or reject this Material Request.")
+        )
 
 
 def get_permission_query_conditions(user=None):
@@ -199,15 +204,26 @@ def get_permission_query_conditions(user=None):
     employee = get_manager_details(user)
 
     if not employee:
-        return ""
+        return "1=0"
     
     if employee.allow_access_to_all_warehouses:
         return ""
     
     if not employee.active_warehouse:
-        return ""
+        return "1=0"
 
-    warehouse = frappe.db.escape(employee.active_warehouse)
+    managed_warehouses = get_managed_warehouses(
+        employee.active_warehouse,
+        include_sub_warehouses=True,
+    )
+
+    if not managed_warehouses:
+        return "1=0"
+
+    warehouses = ", ".join(
+        frappe.db.escape(warehouse)
+        for warehouse in managed_warehouses
+    )
 
     return f"""
         EXISTS (
@@ -216,6 +232,9 @@ def get_permission_query_conditions(user=None):
             WHERE
                 mr_item.parent = `tabMaterial Request`.name
                 AND mr_item.parenttype = 'Material Request'
-                AND mr_item.warehouse = {warehouse}
+                AND (
+                    mr_item.warehouse IN ({warehouses})
+                    OR mr_item.from_warehouse IN ({warehouses})
+                )
         )
     """
