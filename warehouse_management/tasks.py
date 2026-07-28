@@ -2,16 +2,21 @@ import frappe
 from frappe.query_builder import DocType
 from pypika.functions import Coalesce
 
+from warehouse_management.utils import get_manager_warehouse
+
 
 def check_critical_stock():
     Item = DocType("Item")
     ItemReorder = DocType("Item Reorder")
     Bin = DocType("Bin")
+    Warehouse = DocType("Warehouse")
 
     rows = (
         frappe.qb.from_(ItemReorder)
         .inner_join(Item)
         .on(Item.name == ItemReorder.parent)
+        .inner_join(Warehouse)
+        .on(Warehouse.name == ItemReorder.warehouse)
         .left_join(Bin)
         .on(
             (Bin.item_code == Item.name)
@@ -25,6 +30,8 @@ def check_critical_stock():
             Coalesce(Bin.actual_qty, 0).as_("current_stock"),
         )
         .where(Item.disabled == 0)
+        .where(Warehouse.disabled == 0)
+        .where(Warehouse.is_sub_warehouse == 0)
         .where(
             Coalesce(Bin.actual_qty, 0)
             <= ItemReorder.warehouse_reorder_level
@@ -32,23 +39,29 @@ def check_critical_stock():
         .run(as_dict=True)
     )
 
-    warehouse_data = {}
+    manager_data = {}
 
     for row in rows:
-        warehouse_data.setdefault(
-            row["warehouse"],
-            []
+        manager_warehouse = get_manager_warehouse(row["warehouse"])
+
+        if not manager_warehouse:
+            continue
+
+        manager_data.setdefault(
+            manager_warehouse,
+            [],
         ).append(row)
 
-    for warehouse, items in warehouse_data.items():
-        send_notification(warehouse, items)
+    for manager_warehouse, items in manager_data.items():
+        send_notification(manager_warehouse, items)
 
 
-def send_notification(warehouse, items):
+def send_notification(manager_warehouse, items):
     employees = frappe.get_all(
         "Employee",
         filters={
-            "active_warehouse": warehouse,
+            "status": "Active",
+            "active_warehouse": manager_warehouse,
         },
         fields=["user_id"],
     )
@@ -57,8 +70,6 @@ def send_notification(warehouse, items):
         return
 
     lines = [
-        f"<b>{warehouse}</b>",
-        "",
         "The following items are below critical stock:",
         "",
     ]
@@ -73,15 +84,23 @@ def send_notification(warehouse, items):
     message = "<br>".join(lines)
 
     for employee in employees:
-        roles = frappe.get_roles(frappe.session.user)
+        if not employee.user_id:
+            continue
 
-        if employee.user_id and "Warehouse Manager" in roles:
-            frappe.get_doc(
-                {
-                    "doctype": "Notification Log",
-                    "subject": f"Low Stock Alert - {warehouse}",
-                    "email_content": message,
-                    "for_user": employee.user_id,
-                    "type": "Alert",
-                }
-            ).insert(ignore_permissions=True)
+        roles = frappe.get_roles(employee.user_id)
+
+        if "Warehouse Manager" not in roles:
+            continue
+
+        if "System Manager" in roles:
+            continue
+
+        frappe.get_doc(
+            {
+                "doctype": "Notification Log",
+                "subject": f"Stock Replenishment Required for {manager_warehouse}",
+                "email_content": message,
+                "for_user": employee.user_id,
+                "type": "Alert",
+            }
+        ).insert(ignore_permissions=True)
