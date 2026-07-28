@@ -6,6 +6,8 @@ from frappe.utils import parse_json
 from frappe.query_builder import DocType
 from pypika.functions import Coalesce
 
+from warehouse_management.utils import get_managed_warehouses
+
 
 def execute(filters=None):
     filters = filters or {}
@@ -70,11 +72,14 @@ def get_data(filters):
     Item = DocType("Item")
     ItemReorder = DocType("Item Reorder")
     Bin = DocType("Bin")
+    Warehouse = DocType("Warehouse")
 
     query = (
         frappe.qb.from_(ItemReorder)
         .inner_join(Item)
         .on(Item.name == ItemReorder.parent)
+        .inner_join(Warehouse)
+        .on(Warehouse.name == ItemReorder.warehouse)
         .left_join(Bin)
         .on(
             (Bin.item_code == Item.name)
@@ -90,6 +95,8 @@ def get_data(filters):
             Coalesce(Bin.actual_qty, 0).as_("current_stock"),
         )
         .where(Item.disabled == 0)
+        .where(Warehouse.disabled == 0)
+        .where(Warehouse.is_sub_warehouse == 0)
     )
 
     roles = frappe.get_roles(frappe.session.user)
@@ -105,33 +112,42 @@ def get_data(filters):
             as_dict=True,
         )
 
-        if employee and not employee.allow_access_to_all_warehouses:
+        if not employee:
+            return []
+
+        if not employee.allow_access_to_all_warehouses:
             if not employee.active_warehouse:
                 return []
 
+            allowed_warehouses = get_managed_warehouses(employee.active_warehouse)
+
+            if not allowed_warehouses:
+                return []
+
             query = query.where(
-                ItemReorder.warehouse == employee.active_warehouse
+                ItemReorder.warehouse.isin(allowed_warehouses)
             )
 
     if filters.get("warehouse"):
+        warehouses = get_managed_warehouses(filters["warehouse"])
+
+        if not warehouses:
+            return []
+
         query = query.where(
-            ItemReorder.warehouse == filters["warehouse"]
+            ItemReorder.warehouse.isin(warehouses)
         )
 
     rows = query.run(as_dict=True)
 
-    data = []
+    if filters.get("critical_only"):
+        rows = [
+            row
+            for row in rows
+            if row["current_stock"] <= row["critical_qty"]
+        ]
 
-    for row in rows:
-        if (
-            filters.get("critical_only")
-            and row["current_stock"] > row["critical_qty"]
-        ):
-            continue
-
-        data.append(row)
-
-    return data
+    return rows
 
 
 @frappe.whitelist()
@@ -139,16 +155,24 @@ def get_material_request(items):
     if isinstance(items, str):
         items = parse_json(items)
 
+    target_warehouses = {
+        row.get("warehouse")
+        for row in items
+        if row.get("warehouse")
+    }
+
+    target_warehouse = next(iter(target_warehouses))
+
     mr = frappe.new_doc("Material Request")
     mr.material_request_type = "Material Transfer"
-    mr.set_warehouse = items[0].get("warehouse")
+    mr.set_warehouse = target_warehouse
 
     for row in items:
         mr.append(
             "items",
             {
                 "item_code": row["item_code"],
-                "warehouse": row["warehouse"],
+                "warehouse": target_warehouse,
                 "qty": row["reorder_qty"],
                 "stock_uom": row["stock_uom"],
                 "uom": row["stock_uom"],

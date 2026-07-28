@@ -7,7 +7,15 @@ frappe.query_reports["Stock Replenishment Report"] = {
             fieldname: "warehouse",
             label: __("Warehouse"),
             fieldtype: "Link",
-            options: "Warehouse"
+            options: "Warehouse",
+            get_query() {
+                return {
+                    filters: {
+                        is_sub_warehouse: 0,
+                        disabled: 0,
+                    },
+                };
+            },
         },
         {
             fieldname: "critical_only",
