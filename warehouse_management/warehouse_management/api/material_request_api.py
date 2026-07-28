@@ -1,5 +1,8 @@
+import json
+
 import frappe
 from frappe import _
+from frappe.utils import flt, nowdate
 
 
 @frappe.whitelist()
@@ -74,4 +77,144 @@ def get_item_storage_bins(item_code):
             }
             for row in bins
         ],
+    }
+
+
+@frappe.whitelist()
+def create_picking_bin_assignments(data=None):
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    data = data or frappe.form_dict
+
+    mr_id = data.get("mr_id")
+    assignment_type = data.get("assgn_type")
+    items = data.get("items") or []
+
+    if not mr_id:
+        frappe.throw(_("Material Request ID is required."))
+
+    if not frappe.db.exists("Material Request", mr_id):
+        frappe.throw(_("Material Request {0} does not exist.").format(mr_id))
+
+    if assignment_type != "Picking":
+        frappe.throw(_("Assignment Type must be Picking."))
+
+    if not items:
+        frappe.throw(_("Items are required."))
+
+    mr = frappe.get_doc("Material Request", mr_id)
+
+    picked_items = {}
+    bin_assignments = []
+
+    for item in items:
+        item_code = item.get("item_code")
+        bins = item.get("bins") or []
+
+        if not item_code:
+            frappe.throw(_("Item Code is required."))
+
+        if not bins:
+            frappe.throw(
+                _("Storage Bin is required for Item {0}.").format(item_code)
+            )
+
+        total_picked_qty = 0
+
+        for bin_row in bins:
+            bin_name = bin_row.get("bin")
+            picked_qty = flt(bin_row.get("qty"))
+            uom = bin_row.get("uom") or item.get("uom")
+
+            if not bin_name:
+                frappe.throw(
+                    _("Storage Bin is required for Item {0}.").format(item_code)
+                )
+
+            if picked_qty <= 0:
+                frappe.throw(
+                    _("Picking quantity must be greater than zero for Bin {0}.").format(
+                        bin_name
+                    )
+                )
+
+            storage_bin = frappe.db.get_value(
+                "Storage Bin",
+                bin_name,
+                [
+                    "name",
+                    "rack",
+                    "warehouse",
+                    "assigned_item",
+                    "quantity",
+                    "uom",
+                    "status",
+                ],
+                as_dict=True,
+            )
+
+            if not storage_bin:
+                frappe.throw(
+                    _("Storage Bin {0} does not exist.").format(bin_name)
+                )
+
+            if storage_bin.assigned_item != item_code:
+                frappe.throw(
+                    _("Storage Bin {0} is not assigned to Item {1}.").format(
+                        bin_name, item_code
+                    )
+                )
+
+            if storage_bin.status != "Occupied":
+                frappe.throw(
+                    _("Storage Bin {0} is not occupied.").format(bin_name)
+                )
+
+            if picked_qty > flt(storage_bin.quantity):
+                frappe.throw(
+                    _(
+                        "Insufficient quantity in Storage Bin {0}. "
+                        "Available: {1}, Requested: {2}"
+                    ).format(
+                        bin_name,
+                        storage_bin.quantity,
+                        picked_qty,
+                    )
+                )
+
+            bin_assignment = frappe.get_doc(
+                {
+                    "doctype": "Bin Assignment",
+                    "item": item_code,
+                    "uom": uom,
+                    "rack": storage_bin.rack,
+                    "bin": storage_bin.name,
+                    "quantity": -picked_qty,
+                    "doa": nowdate(),
+                    "assignment_type": assignment_type,
+                    "material_request": mr_id,
+                }
+            )
+
+            bin_assignment.insert()
+
+            bin_assignments.append(bin_assignment.name)
+            total_picked_qty += picked_qty
+
+        if item_code not in picked_items:
+            picked_items[item_code] = {
+                "item_code": item_code,
+                "item_name": item.get("item_name"),
+                "uom": item.get("uom"),
+                "qty": 0,
+            }
+
+        picked_items[item_code]["qty"] += total_picked_qty
+
+    return {
+        "mr_id": mr.name,
+        "assignment_type": assignment_type,
+        "bin_assignments": bin_assignments,
+        "picked_items": list(picked_items.values()),
     }
