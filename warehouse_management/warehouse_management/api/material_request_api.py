@@ -81,7 +81,7 @@ def get_item_storage_bins(item_code):
 
 
 @frappe.whitelist()
-def create_picking_bin_assignments(data=None):
+def create_pick_list_from_bins(data=None):
     if isinstance(data, str):
         data = json.loads(data)
 
@@ -212,9 +212,37 @@ def create_picking_bin_assignments(data=None):
 
         picked_items[item_code]["qty"] += total_picked_qty
 
+    pick_list = create_pick_list(mr, picked_items)
+
     return {
         "mr_id": mr.name,
         "assignment_type": assignment_type,
         "bin_assignments": bin_assignments,
-        "picked_items": list(picked_items.values()),
+        "pick_list": pick_list.name,
     }
+
+
+def create_pick_list(mr, picked_items):
+    pick_list = frappe.new_doc("Pick List")
+
+    pick_list.purpose = "Material Transfer"
+    pick_list.material_request = mr.name
+    pick_list.source_warehouse = mr.set_from_warehouse
+    pick_list.destination_warehouse = mr.set_warehouse
+
+    for item in picked_items.values():
+        pick_list.append(
+            "locations",
+            {
+                "item_code": item["item_code"],
+                "qty": item["qty"],
+                "stock_qty": item["qty"],
+                "stock_uom": item["uom"],
+                "conversion_factor": 1,
+            },
+        )
+
+    pick_list.insert()
+    pick_list.submit()
+
+    return pick_list
