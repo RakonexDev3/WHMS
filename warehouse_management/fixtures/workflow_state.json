@@ -34,5 +34,14 @@
   "name": "Cancelled",
   "style": "Danger",
   "workflow_state_name": "Cancelled"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2026-07-29 15:39:35.063503",
+  "name": "Picked",
+  "style": "Success",
+  "workflow_state_name": "Picked"
  }
 ]
