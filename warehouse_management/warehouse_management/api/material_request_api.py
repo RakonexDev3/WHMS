@@ -226,7 +226,7 @@ def create_pick_list_from_bins(data=None):
 
 def create_pick_list(mr, picked_items):
     pick_list = make_pick_list(mr.name)
-
+    pick_list.pick_manually = 1
     pick_list.source_warehouse = mr.set_from_warehouse
     pick_list.destination_warehouse = mr.set_warehouse
 
@@ -242,7 +242,7 @@ def create_pick_list(mr, picked_items):
 
     for row in pick_list.locations:
         picked_qty = picked_qty_by_item[row.item_code]
-
+        row.warehouse = mr.set_from_warehouse
         row.qty = picked_qty
         row.stock_qty = picked_qty * flt(row.conversion_factor or 1)
 
@@ -272,6 +272,7 @@ def create_transit_stock_entry(data=None):
     stock_entry.material_request = pick_list.material_request
     stock_entry.from_warehouse = pick_list.source_warehouse
     stock_entry.to_warehouse = transit_wh
+    stock_entry.add_to_transit = 1
 
     for row in stock_entry.items:
         row.t_warehouse = transit_wh
