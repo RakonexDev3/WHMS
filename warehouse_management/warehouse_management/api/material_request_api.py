@@ -285,3 +285,35 @@ def create_transit_stock_entry(data=None):
         "material_request": pick_list.material_request,
         "transit_warehouse": transit_wh,
     }
+
+@frappe.whitelist()
+def get_transit_stock_entries(destination_warehouse):
+    stock_entries = frappe.get_all(
+        "Stock Entry",
+        filters={
+            "docstatus": 1,
+            "pick_list": ["!=", ""],
+            "stock_entry_type": "Material Transfer",
+            "destination_warehouse": destination_warehouse,
+        },
+        fields=[
+            "name",
+            "pick_list",
+            "material_request",
+            "from_warehouse",
+            "to_warehouse",
+            "destination_warehouse"
+        ],
+    )
+
+    return [
+        {
+            "stock_entry": entry.name,
+            "pick_list": entry.pick_list,
+            "material_request": entry.material_request,
+            "from_warehouse": entry.from_warehouse,
+            "transit_warehouse": entry.to_warehouse,
+            "destination_warehouse": destination_warehouse
+        }
+        for entry in stock_entries
+    ]
