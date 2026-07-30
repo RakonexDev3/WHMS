@@ -25,7 +25,7 @@ fixtures = [
     {
         "doctype": "Workflow State",
         "filters": [
-            ["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked"]]
+            ["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked", "In Transit"]]
         ]
     },
     {
@@ -184,6 +184,9 @@ doc_events = {
 	"Pick List": {
 		"validate": "warehouse_management.events.pick_list.validate_material_requests",
 		"on_submit": "warehouse_management.events.pick_list.update_material_requests_as_picked"
+	},
+	"Stock Entry": {
+		"on_submit": "warehouse_management.events.stock_entry.update_material_request_in_transit",
 	},
 }
 

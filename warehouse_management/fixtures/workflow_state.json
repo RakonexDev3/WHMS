@@ -43,5 +43,14 @@
   "name": "Picked",
   "style": "Success",
   "workflow_state_name": "Picked"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2026-07-30 11:24:27.253131",
+  "name": "In Transit",
+  "style": "Warning",
+  "workflow_state_name": "In Transit"
  }
 ]
