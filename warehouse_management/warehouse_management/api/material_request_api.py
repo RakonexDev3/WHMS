@@ -3,6 +3,8 @@ import json
 import frappe
 from frappe import _
 from frappe.utils import flt, nowdate
+from erpnext.stock.doctype.material_request.material_request import create_pick_list as make_pick_list
+from erpnext.stock.doctype.pick_list.pick_list import create_stock_entry
 
 
 @frappe.whitelist()
@@ -223,26 +225,63 @@ def create_pick_list_from_bins(data=None):
 
 
 def create_pick_list(mr, picked_items):
-    pick_list = frappe.new_doc("Pick List")
+    pick_list = make_pick_list(mr.name)
 
-    pick_list.purpose = "Material Transfer"
-    pick_list.material_request = mr.name
     pick_list.source_warehouse = mr.set_from_warehouse
     pick_list.destination_warehouse = mr.set_warehouse
 
-    for item in picked_items.values():
-        pick_list.append(
-            "locations",
-            {
-                "item_code": item["item_code"],
-                "qty": item["qty"],
-                "stock_qty": item["qty"],
-                "stock_uom": item["uom"],
-                "conversion_factor": 1,
-            },
-        )
+    picked_qty_by_item = {
+        item["item_code"]: flt(item["qty"])
+        for item in picked_items.values()
+    }
+
+    pick_list.locations = [
+        row for row in pick_list.locations
+        if row.item_code in picked_qty_by_item
+    ]
+
+    for row in pick_list.locations:
+        picked_qty = picked_qty_by_item[row.item_code]
+
+        row.qty = picked_qty
+        row.stock_qty = picked_qty * flt(row.conversion_factor or 1)
 
     pick_list.insert()
     pick_list.submit()
 
     return pick_list
+
+
+@frappe.whitelist()
+def create_transit_stock_entry(data=None):
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    data = data or frappe.form_dict
+
+    transit_wh = data.get("transit_wh")
+    pl_id = data.get("pl_id")
+
+    pick_list = frappe.get_doc("Pick List", pl_id)
+
+    stock_entry = create_stock_entry(
+        frappe.as_json(pick_list.as_dict())
+    )
+
+    stock_entry = frappe.get_doc(stock_entry)
+    stock_entry.material_request = pick_list.material_request
+    stock_entry.from_warehouse = pick_list.source_warehouse
+    stock_entry.to_warehouse = transit_wh
+
+    for row in stock_entry.items:
+        row.t_warehouse = transit_wh
+
+    stock_entry.insert()
+    stock_entry.submit()
+
+    return {
+        "stock_entry": stock_entry.name,
+        "pl_id": pl_id,
+        "material_request": pick_list.material_request,
+        "transit_warehouse": transit_wh,
+    }
