@@ -1,16 +1,27 @@
 import frappe
 
 
-def update_material_request_in_transit(doc, method=None):
-    if not doc.pick_list or not doc.material_request:
+def update_material_request_workflow(doc, method=None):
+    if not doc.material_request:
         return
 
-    frappe.db.set_value(
-        "Material Request",
-        doc.material_request,
-        "workflow_state",
-        "In Transit",
-    )
+    if doc.pick_list and doc.add_to_transit:
+        frappe.db.set_value(
+            "Material Request",
+            doc.material_request,
+            "workflow_state",
+            "In Transit",
+            update_modified=False,
+        )
+
+    elif doc.outgoing_stock_entry:
+        frappe.db.set_value(
+            "Material Request",
+            doc.material_request,
+            "workflow_state",
+            "Completed",
+            update_modified=False,
+        )
 
 
 def create_bin_assignments_on_stock_entry_submit(doc, method):

@@ -39,9 +39,9 @@
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2026-07-29 15:39:35.063503",
+  "modified": "2026-07-31 15:01:08.326261",
   "name": "Picked",
-  "style": "Success",
+  "style": "Warning",
   "workflow_state_name": "Picked"
  },
  {
@@ -52,5 +52,14 @@
   "name": "In Transit",
   "style": "Warning",
   "workflow_state_name": "In Transit"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2026-07-31 15:01:02.901779",
+  "name": "Completed",
+  "style": "Success",
+  "workflow_state_name": "Completed"
  }
 ]

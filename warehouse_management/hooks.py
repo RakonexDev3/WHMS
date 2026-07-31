@@ -187,7 +187,7 @@ doc_events = {
 	},
 	"Stock Entry": {
 		"on_submit": [
-			"warehouse_management.events.stock_entry.update_material_request_in_transit",
+			"warehouse_management.events.stock_entry.update_material_request_workflow",
 			"warehouse_management.events.stock_entry.create_bin_assignments_on_stock_entry_submit",
 		]
 	},
