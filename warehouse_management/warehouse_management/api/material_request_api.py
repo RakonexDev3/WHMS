@@ -362,7 +362,7 @@ def get_transit_stock_entries(destination_warehouse):
         "Stock Entry",
         filters={
             "docstatus": 1,
-            "pick_list": ["!=", ""],
+            "add_to_transit": 1,
             "stock_entry_type": "Material Transfer",
             "destination_warehouse": destination_warehouse,
         },
