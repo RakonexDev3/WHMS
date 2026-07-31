@@ -11,10 +11,10 @@ app_license = "mit"
 fixtures = [
     {
         "doctype": "Custom Field",
-        "filters": {
-            "dt": "Purchase Receipt Item",
-            "fieldname": ["in", ["rack", "bin", "date_of_assignment", "expiry_date"]]
-        }
+        "filters": [
+            ["dt", "in", ["Purchase Receipt Item", "Stock Entry Detail"]],
+            ["fieldname", "in", ["rack", "bin", "date_of_assignment", "expiry_date"]]
+        ]
     },
     {
         "doctype": "Workflow",

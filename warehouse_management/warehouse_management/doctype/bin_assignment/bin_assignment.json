@@ -20,9 +20,10 @@
   "references_section",
   "purchase_receipt",
   "batch_no",
+  "notes",
   "column_break_nqcz",
   "material_request",
-  "notes"
+  "stock_entry"
  ],
  "fields": [
   {
@@ -120,12 +121,18 @@
   {
    "fieldname": "column_break_nqcz",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-28 14:43:13.961675",
+ "modified": "2026-07-31 11:19:59.683994",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Bin Assignment",
