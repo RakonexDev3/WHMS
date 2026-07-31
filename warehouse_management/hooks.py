@@ -186,7 +186,10 @@ doc_events = {
 		"on_submit": "warehouse_management.events.pick_list.update_material_requests_as_picked"
 	},
 	"Stock Entry": {
-		"on_submit": "warehouse_management.events.stock_entry.update_material_request_in_transit",
+		"on_submit": [
+			"warehouse_management.events.stock_entry.update_material_request_in_transit",
+			"warehouse_management.events.stock_entry.create_bin_assignments_on_stock_entry_submit",
+		]
 	},
 }
 
