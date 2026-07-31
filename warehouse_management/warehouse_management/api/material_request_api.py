@@ -5,6 +5,7 @@ from frappe import _
 from frappe.utils import flt, nowdate
 from erpnext.stock.doctype.material_request.material_request import create_pick_list as make_pick_list
 from erpnext.stock.doctype.pick_list.pick_list import create_stock_entry
+from erpnext.stock.doctype.stock_entry.stock_entry import make_stock_in_entry
 
 
 @frappe.whitelist()
@@ -259,33 +260,101 @@ def create_transit_stock_entry(data=None):
 
     data = data or frappe.form_dict
 
-    transit_wh = data.get("transit_wh")
-    pl_id = data.get("pl_id")
+    action = data.get("action")
+    items = data.get("items", [])
 
-    pick_list = frappe.get_doc("Pick List", pl_id)
+    if action not in ("add_to_transit", "end_transit"):
+        frappe.throw(_("Action must be 'add_to_transit' or 'end_transit'"))
 
-    stock_entry = create_stock_entry(
-        frappe.as_json(pick_list.as_dict())
-    )
+    item_map = {d.get("item_code"): d for d in items}
 
-    stock_entry = frappe.get_doc(stock_entry)
-    stock_entry.material_request = pick_list.material_request
-    stock_entry.from_warehouse = pick_list.source_warehouse
-    stock_entry.to_warehouse = transit_wh
-    stock_entry.add_to_transit = 1
+    if action == "add_to_transit":
+        transit_wh = data.get("transit_wh")
+        pl_id = data.get("pl_id")
+
+        if not transit_wh:
+            frappe.throw(_("Transit Warehouse is required"))
+
+        if not pl_id:
+            frappe.throw(_("Pick List is required"))
+
+        pick_list = frappe.get_doc("Pick List", pl_id)
+
+        stock_entry = frappe.get_doc(create_stock_entry(
+            frappe.as_json(pick_list.as_dict())
+        ))
+
+        stock_entry.material_request = pick_list.material_request
+        stock_entry.from_warehouse = pick_list.source_warehouse
+        stock_entry.to_warehouse = transit_wh
+        stock_entry.add_to_transit = 1
+
+        response = {
+            "pick_list": pl_id,
+            "material_request": pick_list.material_request,
+        }
+
+    else:
+        outward_se = data.get("stock_entry")
+        destination_wh = data.get("destination_wh")
+
+        if not outward_se:
+            frappe.throw(_("Outward Stock Entry is required"))
+
+        if not destination_wh:
+            frappe.throw(_("Destination Warehouse is required"))
+
+        outward = frappe.get_doc("Stock Entry", outward_se)
+
+        stock_entry = frappe.get_doc(make_stock_in_entry(outward.name))
+        stock_entry.from_warehouse = outward.to_warehouse
+        stock_entry.to_warehouse = destination_wh
+        stock_entry.destination_warehouse = None
+
+        response = {
+            "outward_stock_entry": outward.name,
+        }
 
     for row in stock_entry.items:
-        row.t_warehouse = transit_wh
+        req = item_map.get(row.item_code)
+
+        if not req:
+            continue
+
+        qty = flt(req.get("qty", row.qty))
+
+        row.qty = qty
+        row.transfer_qty = qty
+
+        if req.get("rack"):
+            row.rack = req["rack"]
+
+        if req.get("bin"):
+            row.bin = req["bin"]
+
+        if req.get("expiry_date"):
+            row.expiry_date = req["expiry_date"]
+
+        if req.get("date_of_assignment"):
+            row.date_of_assignment = req["date_of_assignment"]
+
+        if action == "add_to_transit":
+            row.t_warehouse = stock_entry.to_warehouse
+        else:
+            row.t_warehouse = destination_wh
 
     stock_entry.insert()
     stock_entry.submit()
 
-    return {
-        "stock_entry": stock_entry.name,
-        "pl_id": pl_id,
-        "material_request": pick_list.material_request,
-        "transit_warehouse": transit_wh,
-    }
+    response.update(
+        {
+            "action": action,
+            "stock_entry": stock_entry.name,
+        }
+    )
+
+    return response
+
 
 @frappe.whitelist()
 def get_transit_stock_entries(destination_warehouse):
