@@ -4,7 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, nowdate
 from erpnext.stock.doctype.material_request.material_request import create_pick_list as make_pick_list
-from erpnext.stock.doctype.pick_list.pick_list import create_stock_entry
+from erpnext.stock.doctype.pick_list.pick_list import create_stock_entry as make_outward_stock_entry
 from erpnext.stock.doctype.stock_entry.stock_entry import make_stock_in_entry
 
 
@@ -254,7 +254,7 @@ def create_pick_list(mr, picked_items):
 
 
 @frappe.whitelist()
-def create_transit_stock_entry(data=None):
+def create_stock_entry(data=None):
     if isinstance(data, str):
         data = json.loads(data)
 
@@ -265,8 +265,6 @@ def create_transit_stock_entry(data=None):
 
     if action not in ("add_to_transit", "end_transit"):
         frappe.throw(_("Action must be 'add_to_transit' or 'end_transit'"))
-
-    item_map = {d.get("item_code"): d for d in items}
 
     if action == "add_to_transit":
         transit_wh = data.get("transit_wh")
@@ -280,19 +278,33 @@ def create_transit_stock_entry(data=None):
 
         pick_list = frappe.get_doc("Pick List", pl_id)
 
-        stock_entry = frappe.get_doc(create_stock_entry(
+        stock_entry = frappe.get_doc(make_outward_stock_entry(
             frappe.as_json(pick_list.as_dict())
         ))
 
         stock_entry.material_request = pick_list.material_request
         stock_entry.from_warehouse = pick_list.source_warehouse
         stock_entry.to_warehouse = transit_wh
+        stock_entry.destination_warehouse = pick_list.destination_warehouse
         stock_entry.add_to_transit = 1
 
         response = {
             "pick_list": pl_id,
             "material_request": pick_list.material_request,
         }
+
+        item_map = {d.get("item_code"): d for d in items}
+
+        for row in stock_entry.items:
+            req = item_map.get(row.item_code)
+
+            if not req:
+                continue
+
+            qty = flt(req.get("qty", row.qty))
+            row.qty = qty
+            row.transfer_qty = qty
+            row.t_warehouse = stock_entry.to_warehouse
 
     else:
         outward_se = data.get("stock_entry")
@@ -315,33 +327,29 @@ def create_transit_stock_entry(data=None):
             "outward_stock_entry": outward.name,
         }
 
-    for row in stock_entry.items:
-        req = item_map.get(row.item_code)
+        original_rows = list(stock_entry.items)
+        stock_entry.set("items", [])
 
-        if not req:
-            continue
+        for row in original_rows:
+            requests = [d for d in items if d.get("item_code") == row.item_code]
 
-        qty = flt(req.get("qty", row.qty))
+            if not requests:
+                requests = [{}]
 
-        row.qty = qty
-        row.transfer_qty = qty
+            for req in requests:
+                new_row = stock_entry.append("items", {})
+                new_row.update(row.as_dict())
 
-        if req.get("rack"):
-            row.rack = req["rack"]
+                qty = flt(req.get("qty", row.qty))
+                new_row.qty = qty
+                new_row.transfer_qty = qty
+                new_row.t_warehouse = destination_wh
 
-        if req.get("bin"):
-            row.bin = req["bin"]
+                if req.get("rack"):
+                    new_row.rack = req.get("rack")
 
-        if req.get("expiry_date"):
-            row.expiry_date = req["expiry_date"]
-
-        if req.get("date_of_assignment"):
-            row.date_of_assignment = req["date_of_assignment"]
-
-        if action == "add_to_transit":
-            row.t_warehouse = stock_entry.to_warehouse
-        else:
-            row.t_warehouse = destination_wh
+                if req.get("bin"):
+                    new_row.bin = req.get("bin")
 
     stock_entry.insert()
     stock_entry.submit()

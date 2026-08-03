@@ -54,8 +54,6 @@ def create_bin_assignments_on_stock_entry_submit(doc, method):
             "bin": item.bin,
             "uom": item.uom,
             "quantity": item.transfer_qty or item.qty,
-            "expiry_date": item.get("expiry_date"),
-            "doa": item.get("date_of_assignment"),
             "batch_no": item.get("batch_no"),
             "notes": f"Auto-created from Stock Entry {doc.name}",
         }).insert(ignore_permissions=True)
