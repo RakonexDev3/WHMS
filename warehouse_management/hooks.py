@@ -209,11 +209,12 @@ scheduler_events = {
 
 # Overriding Methods
 # ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "warehouse_management.event.get_events"
-# }
-#
+
+override_whitelisted_methods = {
+    "frappe.desk.link_preview.get_preview_data":
+        "warehouse_management.overrides.link_preview.get_preview_data"
+}
+
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
