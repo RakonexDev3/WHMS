@@ -373,6 +373,7 @@ def get_transit_stock_entries(destination_warehouse):
             "add_to_transit": 1,
             "stock_entry_type": "Material Transfer",
             "destination_warehouse": destination_warehouse,
+            "per_transferred": ("<", 100),
         },
         fields=[
             "name",
