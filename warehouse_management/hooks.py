@@ -33,7 +33,13 @@ fixtures = [
         "filters": [
             ["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on"]]
         ]
-    }
+    },
+    {
+        "doctype": "Warehouse Type",
+        "filters": [
+            ["name", "in", ["Bay", "Storage", "Hold"]]
+        ]
+    },
 ]
 # ------------------
 
@@ -211,8 +217,7 @@ scheduler_events = {
 # ------------------------------
 
 override_whitelisted_methods = {
-    "frappe.desk.link_preview.get_preview_data":
-        "warehouse_management.overrides.link_preview.get_preview_data"
+    "frappe.desk.link_preview.get_preview_data": "warehouse_management.overrides.link_preview.get_preview_data"
 }
 
 # each overriding function accepts a `data` argument;

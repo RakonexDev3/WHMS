@@ -1,0 +1,23 @@
+[
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Warehouse Type",
+  "modified": "2026-08-07 14:42:52.151422",
+  "name": "Bay"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Warehouse Type",
+  "modified": "2026-08-07 14:43:23.207364",
+  "name": "Storage"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Warehouse Type",
+  "modified": "2026-08-07 14:43:28.891035",
+  "name": "Hold"
+ }
+]
