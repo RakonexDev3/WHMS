@@ -32,6 +32,8 @@ frappe.query_reports["Stock Replenishment Report"] = {
     },
 
     onload(report) {
+        warehouse_management.setup_report_hover(report);
+
         report.page.add_inner_button(
             __("Material Request"),
             () => {
@@ -65,4 +67,51 @@ frappe.query_reports["Stock Replenishment Report"] = {
             __("Create")
         );
     }
+};
+
+warehouse_management.setup_report_hover = function (report) {
+	warehouse_management.observe_link_preview();
+
+	const bind_events = function () {
+		if (!report.datatable) {
+			return;
+		}
+
+		const $wrapper = $(report.datatable.wrapper);
+
+		$wrapper.off(".stock_preview");
+
+		$wrapper.on(
+			"mouseenter.stock_preview",
+			'a[data-doctype="Item"]',
+			function () {
+				const item_code = $(this).attr("data-name");
+
+				if (!item_code) {
+					return;
+				}
+
+				warehouse_management.current_item = item_code;
+
+				warehouse_management.current_frm = {
+					doc: {
+						company:
+							frappe.defaults.get_default("company"),
+					},
+				};
+
+				warehouse_management.schedule_append_stock();
+			}
+		);
+	};
+
+	bind_events();
+
+	const original_refresh = report.refresh.bind(report);
+
+	report.refresh = function () {
+		original_refresh();
+
+		setTimeout(bind_events, 200);
+	};
 };

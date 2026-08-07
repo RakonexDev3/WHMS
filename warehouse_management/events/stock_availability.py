@@ -19,6 +19,8 @@ def get_stock_availability(item_code, company=None):
 			"company": company,
 			"is_group": 0,
 			"disabled": 0,
+			"is_sub_warehouse": 0,
+			"warehouse_type": ["!=", "Transit"],
 		},
 		fields=["name", "warehouse_name"],
 		order_by="name",

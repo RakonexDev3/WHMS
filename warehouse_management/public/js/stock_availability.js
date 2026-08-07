@@ -57,47 +57,37 @@ warehouse_management.render_stock_table = function (rows) {
 				</div>
 	`;
 
-	if (!rows.length) {
+	rows.forEach(function (row) {
+		const warehouse = frappe.utils.escape_html(
+			row.warehouse_name || row.warehouse || ""
+		);
+
+		const qty = format_number(
+			row.stock_qty || 0,
+			null,
+			{ precision: 2 }
+		);
+
 		html += `
-			<div class="text-muted">
-				${__("No warehouses found")}
+			<div
+				style="
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					gap: 15px;
+					margin-bottom: 8px;
+				"
+			>
+				<span class="text-muted">
+					${warehouse}
+				</span>
+
+				<span>
+					${qty}
+				</span>
 			</div>
 		`;
-	} else {
-		rows.forEach(function (row) {
-			const warehouse = frappe.utils.escape_html(
-				row.warehouse_name ||
-				row.warehouse ||
-				""
-			);
-
-			const qty = format_number(
-				row.stock_qty || 0,
-				null,
-				{ precision: 2 }
-			);
-
-			html += `
-				<div
-					style="
-						display: flex;
-						justify-content: space-between;
-						align-items: center;
-						gap: 15px;
-						margin-bottom: 8px;
-					"
-				>
-					<span class="text-muted">
-						${warehouse}
-					</span>
-
-					<span>
-						${qty}
-					</span>
-				</div>
-			`;
-		});
-	}
+	});
 
 	html += `
 			</div>
@@ -192,16 +182,18 @@ warehouse_management.append_stock = function () {
 		.then(function (rows) {
 			if (
 				!$.contains(document, $loading[0]) ||
-				warehouse_management.current_item !==
-					item_code
+				warehouse_management.current_item !== item_code
 			) {
 				return;
 			}
 
+			if (!rows.length) {
+				$loading.css("display", "none");
+				return;
+			}
+
 			const $stock = $(
-				warehouse_management.render_stock_table(
-					rows
-				)
+				warehouse_management.render_stock_table(rows)
 			);
 
 			$stock.attr(
