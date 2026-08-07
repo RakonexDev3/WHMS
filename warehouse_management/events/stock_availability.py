@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import flt
 
 
 @frappe.whitelist()
@@ -29,27 +30,44 @@ def get_stock_availability(item_code, company=None):
 	if not warehouses:
 		return []
 
-	warehouse_names = [
-		warehouse.name for warehouse in warehouses
-	]
-
 	bin_data = frappe.db.sql(
 		"""
 		SELECT
-			warehouse,
-			actual_qty
-		FROM `tabBin`
-		WHERE item_code = %s
-			AND warehouse IN %s
+			b.warehouse,
+			w.main_warehouse,
+			w.is_sub_warehouse,
+			w.warehouse_type,
+			b.actual_qty
+		FROM `tabBin` b
+		INNER JOIN `tabWarehouse` w
+			ON w.name = b.warehouse
+		WHERE
+			b.item_code = %s
+			AND w.company = %s
+			AND w.disabled = 0
+			AND IFNULL(w.warehouse_type, '') != 'Transit'
 		""",
-		(item_code, warehouse_names),
+		(item_code, company),
 		as_dict=True,
 	)
 
-	bin_dict = {
-		row.warehouse: frappe.utils.flt(row.actual_qty)
-		for row in bin_data
-	}
+	bin_dict = {}
+
+	for row in bin_data:
+		if (
+			row.is_sub_warehouse
+			and row.main_warehouse
+			and row.warehouse_type == "Storage"
+		):
+			key = row.main_warehouse
+
+		elif not row.is_sub_warehouse:
+			key = row.warehouse
+
+		else:
+			continue
+
+		bin_dict[key] = bin_dict.get(key, 0) + flt(row.actual_qty)
 
 	stock_data = []
 
@@ -83,7 +101,7 @@ def get_available_qty(item_code: str, warehouse: str) -> float:
 	if not item_code or not warehouse:
 		return 0.0
 
-	return frappe.utils.flt(
+	return flt(
 		frappe.db.get_value(
 			"Bin",
 			{
