@@ -31,7 +31,7 @@ fixtures = [
     {
         "doctype": "Property Setter",
         "filters": [
-            ["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on"]]
+            ["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on", "Warehouse-warehouse_type-reqd"]]
         ]
     },
     {
