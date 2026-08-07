@@ -197,6 +197,9 @@ doc_events = {
 			"warehouse_management.events.stock_entry.create_bin_assignments_on_stock_entry_submit",
 		]
 	},
+	"Warehouse": {
+		"validate": "warehouse_management.events.warehouse.validate_warehouse_type"
+	}
 }
 
 # Scheduled Tasks
