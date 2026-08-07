@@ -72,8 +72,8 @@ frappe.query_reports["Stock Replenishment Report"] = {
 warehouse_management.setup_report_hover = function (report) {
 	warehouse_management.observe_link_preview();
 
-	const bind_events = function () {
-		if (!report.datatable) {
+	const bind_events = () => {
+		if (!report.datatable || !report.datatable.wrapper) {
 			return;
 		}
 
@@ -95,8 +95,7 @@ warehouse_management.setup_report_hover = function (report) {
 
 				warehouse_management.current_frm = {
 					doc: {
-						company:
-							frappe.defaults.get_default("company"),
+						company: frappe.defaults.get_default("company"),
 					},
 				};
 
@@ -107,11 +106,18 @@ warehouse_management.setup_report_hover = function (report) {
 
 	bind_events();
 
-	const original_refresh = report.refresh.bind(report);
+	if (report._stock_preview_observer) {
+		return;
+	}
 
-	report.refresh = function () {
-		original_refresh();
+	const target = report.page.wrapper[0];
 
-		setTimeout(bind_events, 200);
-	};
+	report._stock_preview_observer = new MutationObserver(() => {
+		bind_events();
+	});
+
+	report._stock_preview_observer.observe(target, {
+		childList: true,
+		subtree: true,
+	});
 };
