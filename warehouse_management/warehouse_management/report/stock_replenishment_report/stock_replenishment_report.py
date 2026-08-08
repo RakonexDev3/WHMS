@@ -101,7 +101,10 @@ def get_data(filters):
 
     roles = frappe.get_roles(frappe.session.user)
 
-    if "Warehouse Manager" in roles and "System Manager" not in roles:
+    if "System Manager" in roles:
+        pass
+
+    elif "Warehouse Manager" in roles:
         employee = frappe.db.get_value(
             "Employee",
             {
@@ -127,6 +130,8 @@ def get_data(filters):
             query = query.where(
                 ItemReorder.warehouse.isin(allowed_warehouses)
             )
+    else:
+        return []
 
     if filters.get("warehouse"):
         warehouses = get_managed_warehouses(filters["warehouse"])
