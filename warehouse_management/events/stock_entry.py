@@ -76,3 +76,38 @@ def delete_bin_assignments_on_stock_entry_cancel(doc, method):
             name,
             ignore_permissions=True
         )
+
+
+def revert_material_request_workflow(doc, method=None):
+    """Revert Material Request workflow state when a Stock Entry is cancelled."""
+
+    if not doc.material_request:
+        return
+
+    material_request = doc.material_request
+
+    current_state = frappe.db.get_value(
+        "Material Request",
+        material_request,
+        "workflow_state",
+    )
+
+    if doc.pick_list and doc.add_to_transit:
+        if current_state == "In Transit":
+            frappe.db.set_value(
+                "Material Request",
+                material_request,
+                "workflow_state",
+                "Picked",
+                update_modified=False,
+            )
+
+    elif doc.outgoing_stock_entry:
+        if current_state == "Completed":
+            frappe.db.set_value(
+                "Material Request",
+                material_request,
+                "workflow_state",
+                "In Transit",
+                update_modified=False,
+            )

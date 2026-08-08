@@ -189,14 +189,18 @@ doc_events = {
 	},
 	"Pick List": {
 		"validate": "warehouse_management.events.pick_list.validate_material_requests",
-		"on_submit": "warehouse_management.events.pick_list.update_material_requests_as_picked"
+		"on_submit": "warehouse_management.events.pick_list.update_material_requests_as_picked",
+		"on_cancel": "warehouse_management.events.pick_list.revert_material_requests_to_approved",
 	},
 	"Stock Entry": {
 		"on_submit": [
 			"warehouse_management.events.stock_entry.update_material_request_workflow",
 			"warehouse_management.events.stock_entry.create_bin_assignments_on_stock_entry_submit",
 		],
-		"on_cancel": "warehouse_management.events.stock_entry.delete_bin_assignments_on_stock_entry_cancel"
+		"on_cancel": [
+			"warehouse_management.events.stock_entry.revert_material_request_workflow",
+			"warehouse_management.events.stock_entry.delete_bin_assignments_on_stock_entry_cancel",
+		],
 	},
 	"Warehouse": {
 		"validate": "warehouse_management.events.warehouse.validate_warehouse_type"

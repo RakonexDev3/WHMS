@@ -47,3 +47,32 @@ def update_material_requests_as_picked(doc, method=None):
             "Picked",
             update_modified=False,
         )
+
+
+def revert_material_requests_to_approved(doc, method=None):
+    """Revert linked Material Requests from Picked to Approved when Pick List is cancelled."""
+
+    material_requests = {
+        row.material_request
+        for row in doc.locations
+        if row.material_request
+    }
+
+    if not material_requests:
+        return
+
+    for material_request in material_requests:
+        current_state = frappe.db.get_value(
+            "Material Request",
+            material_request,
+            "workflow_state",
+        )
+
+        if current_state == "Picked":
+            frappe.db.set_value(
+                "Material Request",
+                material_request,
+                "workflow_state",
+                "Approved",
+                update_modified=False,
+            )
