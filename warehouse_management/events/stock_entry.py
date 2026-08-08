@@ -57,3 +57,22 @@ def create_bin_assignments_on_stock_entry_submit(doc, method):
             "batch_no": item.get("batch_no"),
             "notes": f"Auto-created from Stock Entry {doc.name}",
         }).insert(ignore_permissions=True)
+
+
+def delete_bin_assignments_on_stock_entry_cancel(doc, method):
+    """Delete Bin Assignment records linked to a cancelled Stock Entry."""
+
+    bin_assignments = frappe.get_all(
+        "Bin Assignment",
+        filters={
+            "stock_entry": doc.name
+        },
+        pluck="name"
+    )
+
+    for name in bin_assignments:
+        frappe.delete_doc(
+            "Bin Assignment",
+            name,
+            ignore_permissions=True
+        )

@@ -195,7 +195,8 @@ doc_events = {
 		"on_submit": [
 			"warehouse_management.events.stock_entry.update_material_request_workflow",
 			"warehouse_management.events.stock_entry.create_bin_assignments_on_stock_entry_submit",
-		]
+		],
+		"on_cancel": "warehouse_management.events.stock_entry.delete_bin_assignments_on_stock_entry_cancel"
 	},
 	"Warehouse": {
 		"validate": "warehouse_management.events.warehouse.validate_warehouse_type"
@@ -220,7 +221,7 @@ scheduler_events = {
 # ------------------------------
 
 override_whitelisted_methods = {
-    "frappe.desk.link_preview.get_preview_data": "warehouse_management.overrides.link_preview.get_preview_data"
+	"frappe.desk.link_preview.get_preview_data": "warehouse_management.overrides.link_preview.get_preview_data"
 }
 
 # each overriding function accepts a `data` argument;
