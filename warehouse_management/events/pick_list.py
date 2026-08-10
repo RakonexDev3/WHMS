@@ -76,3 +76,21 @@ def revert_material_requests_to_approved(doc, method=None):
                 "Approved",
                 update_modified=False,
             )
+
+
+def delete_bin_assignments_on_pick_list_cancel(doc, method=None):
+    bin_assignments = frappe.get_all(
+        "Bin Assignment",
+        filters={
+            "pick_list": doc.name,
+            "assignment_type": "Picking",
+        },
+        pluck="name",
+    )
+
+    for bin_assignment in bin_assignments:
+        frappe.delete_doc(
+            "Bin Assignment",
+            bin_assignment,
+            ignore_permissions=True,
+        )

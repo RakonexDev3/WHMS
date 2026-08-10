@@ -9,43 +9,43 @@ app_license = "mit"
 # --------
 
 fixtures = [
-    {
-        "doctype": "Custom Field",
-        "filters": [
-            ["dt", "in", ["Purchase Receipt Item", "Stock Entry Detail"]],
-            ["fieldname", "in", ["rack", "bin", "date_of_assignment", "expiry_date"]]
-        ]
-    },
-    {
-        "doctype": "Workflow",
-        "filters": [
-            ["name", "in", ["Material Request Approval"]]
-        ]
-    },
-    {
-        "doctype": "Workflow State",
-        "filters": [
-            ["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked", "In Transit", "Completed"]]
-        ]
-    },
-    {
-        "doctype": "Workflow Action Master",
-        "filters": [
-            ["workflow_action_name", "in", ["Cancel", "Submit"]]
-        ]
-    },
-    {
-        "doctype": "Property Setter",
-        "filters": [
-            ["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on", "Warehouse-warehouse_type-reqd"]]
-        ]
-    },
-    {
-        "doctype": "Warehouse Type",
-        "filters": [
-            ["name", "in", ["Bay", "Storage", "Hold"]]
-        ]
-    },
+	{
+		"doctype": "Custom Field",
+		"filters": [
+			["dt", "in", ["Purchase Receipt Item", "Stock Entry Detail"]],
+			["fieldname", "in", ["rack", "bin", "date_of_assignment", "expiry_date"]]
+		]
+	},
+	{
+		"doctype": "Workflow",
+		"filters": [
+			["name", "in", ["Material Request Approval"]]
+		]
+	},
+	{
+		"doctype": "Workflow State",
+		"filters": [
+			["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked", "In Transit", "Completed"]]
+		]
+	},
+	{
+		"doctype": "Workflow Action Master",
+		"filters": [
+			["workflow_action_name", "in", ["Cancel", "Submit"]]
+		]
+	},
+	{
+		"doctype": "Property Setter",
+		"filters": [
+			["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on", "Warehouse-warehouse_type-reqd"]]
+		]
+	},
+	{
+		"doctype": "Warehouse Type",
+		"filters": [
+			["name", "in", ["Bay", "Storage", "Hold"]]
+		]
+	},
 ]
 # ------------------
 
@@ -87,9 +87,9 @@ app_include_js = [
 
 # include js in doctype views
 doctype_js = {
-    "Employee" : "public/js/employee.js",
-    "Warehouse" : "public/js/warehouse.js"
-    }
+	"Employee" : "public/js/employee.js",
+	"Warehouse" : "public/js/warehouse.js"
+	}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -196,7 +196,10 @@ doc_events = {
 	"Pick List": {
 		"validate": "warehouse_management.events.pick_list.validate_material_requests",
 		"on_submit": "warehouse_management.events.pick_list.update_material_requests_as_picked",
-		"on_cancel": "warehouse_management.events.pick_list.revert_material_requests_to_approved",
+		"on_cancel": [
+			"warehouse_management.events.pick_list.revert_material_requests_to_approved",
+			"warehouse_management.events.pick_list.delete_bin_assignments_on_pick_list_cancel",
+		]
 	},
 	"Stock Entry": {
 		"on_submit": [

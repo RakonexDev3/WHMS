@@ -23,6 +23,7 @@
   "notes",
   "column_break_nqcz",
   "material_request",
+  "pick_list",
   "stock_entry"
  ],
  "fields": [
@@ -127,12 +128,18 @@
    "fieldtype": "Link",
    "label": "Stock Entry",
    "options": "Stock Entry"
+  },
+  {
+   "fieldname": "pick_list",
+   "fieldtype": "Link",
+   "label": "Pick List",
+   "options": "Pick List"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-31 11:19:59.683994",
+ "modified": "2026-08-10 13:01:02.127481",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Bin Assignment",

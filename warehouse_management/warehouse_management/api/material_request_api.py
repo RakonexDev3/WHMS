@@ -110,6 +110,7 @@ def create_pick_list_from_bins(data=None):
 
     picked_items = {}
     bin_assignments = []
+    bin_assignment_data = []
 
     for item in items:
         item_code = item.get("item_code")
@@ -186,9 +187,8 @@ def create_pick_list_from_bins(data=None):
                     )
                 )
 
-            bin_assignment = frappe.get_doc(
+            bin_assignment_data.append(
                 {
-                    "doctype": "Bin Assignment",
                     "item": item_code,
                     "uom": uom,
                     "rack": storage_bin.rack,
@@ -200,9 +200,6 @@ def create_pick_list_from_bins(data=None):
                 }
             )
 
-            bin_assignment.insert()
-
-            bin_assignments.append(bin_assignment.name)
             total_picked_qty += picked_qty
 
         if item_code not in picked_items:
@@ -216,6 +213,21 @@ def create_pick_list_from_bins(data=None):
         picked_items[item_code]["qty"] += total_picked_qty
 
     pick_list = create_pick_list(mr, picked_items)
+
+    for assignment in bin_assignment_data:
+        assignment["pick_list"] = pick_list.name
+
+        bin_assignment = frappe.get_doc(
+            {
+                "doctype": "Bin Assignment",
+                **assignment,
+            }
+        )
+
+        bin_assignment.insert()
+        bin_assignments.append(bin_assignment.name)
+
+    pick_list.submit()
 
     return {
         "mr_id": mr.name,
@@ -248,7 +260,6 @@ def create_pick_list(mr, picked_items):
         row.stock_qty = picked_qty * flt(row.conversion_factor or 1)
 
     pick_list.insert()
-    pick_list.submit()
 
     return pick_list
 
