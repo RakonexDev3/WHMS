@@ -29,6 +29,12 @@ fixtures = [
         ]
     },
     {
+        "doctype": "Workflow Action Master",
+        "filters": [
+            ["workflow_action_name", "in", ["Cancel", "Submit"]]
+        ]
+    },
+    {
         "doctype": "Property Setter",
         "filters": [
             ["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on", "Warehouse-warehouse_type-reqd"]]
