@@ -50,13 +50,14 @@ def get_material_request_stock(mr_id):
 
 
 @frappe.whitelist()
-def get_item_storage_bins(item_code):
+def get_item_storage_bins(item_code, warehouse):
     item_name = frappe.db.get_value("Item", item_code, "item_name")
 
     bins = frappe.get_all(
         "Storage Bin",
         filters={
             "assigned_item": item_code,
+            "warehouse": warehouse,
             "status": "Occupied",
         },
         fields=[
@@ -71,6 +72,7 @@ def get_item_storage_bins(item_code):
     return {
         "item_code": item_code,
         "item_name": item_name,
+        "warehouse": warehouse,
         "storage_bins": [
             {
                 "bin": row.name,
