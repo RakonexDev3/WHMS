@@ -10,10 +10,7 @@ frappe.query_reports["Stock Replenishment Report"] = {
             options: "Warehouse",
             get_query() {
                 return {
-                    filters: {
-                        is_sub_warehouse: 0,
-                        disabled: 0,
-                    },
+                    query: "warehouse_management.warehouse_management.report.stock_replenishment_report.stock_replenishment_report.get_warehouse_query",
                 };
             },
         },

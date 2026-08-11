@@ -185,3 +185,50 @@ def get_material_request(items):
         )
 
     return mr.as_dict()
+
+
+@frappe.whitelist()
+def get_warehouse_query(doctype, txt, searchfield, start, page_len, filters):
+    roles = frappe.get_roles(frappe.session.user)
+
+    if "System Manager" not in roles and "Warehouse Manager" not in roles:
+        return []
+
+    warehouse_filters = {
+        "disabled": 0,
+        "is_sub_warehouse": 0,
+    }
+
+    if "System Manager" not in roles:
+        employee = frappe.db.get_value(
+            "Employee",
+            {
+                "user_id": frappe.session.user,
+                "status": "Active",
+            },
+            ["active_warehouse", "allow_access_to_all_warehouses"],
+            as_dict=True,
+        )
+
+        if not employee:
+            return []
+
+        if not employee.allow_access_to_all_warehouses:
+            if not employee.active_warehouse:
+                return []
+
+            warehouse_filters["name"] = employee.active_warehouse
+
+    if txt:
+        warehouse_filters["name"] = ["like", f"%{txt}%"]
+
+    warehouses = frappe.get_all(
+        "Warehouse",
+        filters=warehouse_filters,
+        pluck="name",
+        order_by="name",
+        limit_start=start,
+        limit_page_length=page_len,
+    )
+
+    return [(warehouse,) for warehouse in warehouses]
