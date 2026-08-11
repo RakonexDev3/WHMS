@@ -89,8 +89,10 @@ app_include_js = [
 doctype_js = {
 	"Employee" : "public/js/employee.js",
 	"Warehouse" : "public/js/warehouse.js"
-	}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+}
+doctype_list_js = {
+    "Material Request": "public/js/material_request_list.js",
+}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 

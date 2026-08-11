@@ -238,3 +238,25 @@ def get_permission_query_conditions(user=None):
                 )
         )
     """
+
+
+@frappe.whitelist()
+def get_active_warehouse():
+    roles = frappe.get_roles(frappe.session.user)
+
+    if "System Manager" in roles:
+        return None
+
+    if "Warehouse Manager" not in roles:
+        return None
+
+    employee = frappe.db.get_value(
+        "Employee",
+        {
+            "user_id": frappe.session.user,
+            "status": "Active",
+        },
+        "active_warehouse",
+    )
+
+    return employee
