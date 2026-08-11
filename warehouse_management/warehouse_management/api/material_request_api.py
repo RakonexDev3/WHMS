@@ -126,7 +126,15 @@ def create_pick_list_from_bins(data=None):
                 _("Storage Bin is required for Item {0}.").format(item_code)
             )
 
-        total_picked_qty = 0
+        picked_item = picked_items.setdefault(
+            item_code,
+            {
+                "item_code": item_code,
+                "item_name": item.get("item_name"),
+                "uom": item.get("uom"),
+                "qty": 0,
+            },
+        )
 
         for bin_row in bins:
             bin_name = bin_row.get("bin")
@@ -202,17 +210,7 @@ def create_pick_list_from_bins(data=None):
                 }
             )
 
-            total_picked_qty += picked_qty
-
-        if item_code not in picked_items:
-            picked_items[item_code] = {
-                "item_code": item_code,
-                "item_name": item.get("item_name"),
-                "uom": item.get("uom"),
-                "qty": 0,
-            }
-
-        picked_items[item_code]["qty"] += total_picked_qty
+            picked_item["qty"] += picked_qty
 
     pick_list = create_pick_list(mr, picked_items)
 
@@ -250,16 +248,20 @@ def create_pick_list(mr, picked_items):
         for item in picked_items.values()
     }
 
-    pick_list.locations = [
-        row for row in pick_list.locations
-        if row.item_code in picked_qty_by_item
-    ]
+    unique_locations = {}
 
     for row in pick_list.locations:
-        picked_qty = picked_qty_by_item[row.item_code]
+        if row.item_code not in picked_qty_by_item:
+            continue
+
+        if row.item_code not in unique_locations:
+            unique_locations[row.item_code] = row
+
         row.warehouse = mr.set_from_warehouse
-        row.qty = picked_qty
-        row.stock_qty = picked_qty * flt(row.conversion_factor or 1)
+        row.qty = picked_qty_by_item[row.item_code]
+        row.stock_qty = row.qty * flt(row.conversion_factor or 1)
+
+    pick_list.locations = list(unique_locations.values())
 
     pick_list.insert()
 
