@@ -190,9 +190,6 @@ doc_events = {
 		"validate": "warehouse_management.events.material_request.validate_warehouse_manager",
 		"on_update": "warehouse_management.events.material_request.notify_warehouse_manager"
 	},
-	"Employee": {
-		"on_update": "warehouse_management.events.employee.update_warehouse_user_permission"
-	},
 	"Pick List": {
 		"validate": "warehouse_management.events.pick_list.validate_material_requests",
 		"on_submit": "warehouse_management.events.pick_list.update_material_requests_as_picked",
