@@ -281,3 +281,35 @@ def update_stock_available_at_source(doc, method=None):
 			item.item_code,
 			warehouse,
 		)
+
+
+@frappe.whitelist()
+def get_conflicting_pending_mrs(material_request):
+    mr = frappe.get_doc("Material Request", material_request)
+
+    item_codes = [d.item_code for d in mr.items]
+    source_warehouse = mr.set_from_warehouse
+
+    if not item_codes or not source_warehouse:
+        return []
+
+    conflicts = frappe.db.sql("""
+        SELECT
+            mr.name AS mr_name,
+            mr.set_warehouse AS target_warehouse,
+            mri.item_code,
+            mri.item_name,
+            mri.qty
+        FROM `tabMaterial Request` mr
+        INNER JOIN `tabMaterial Request Item` mri ON mri.parent = mr.name
+        WHERE mr.workflow_state = 'Pending'
+          AND mr.name != %(mr_name)s
+          AND mr.set_from_warehouse = %(source_warehouse)s
+          AND mri.item_code IN %(item_codes)s
+    """, {
+        "mr_name": material_request,
+        "source_warehouse": source_warehouse,
+        "item_codes": item_codes
+    }, as_dict=True)
+
+    return conflicts
