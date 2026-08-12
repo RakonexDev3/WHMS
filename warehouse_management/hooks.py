@@ -95,10 +95,11 @@ app_include_js = [
 # include js in doctype views
 doctype_js = {
 	"Employee" : "public/js/employee.js",
-	"Warehouse" : "public/js/warehouse.js"
+	"Warehouse" : "public/js/warehouse.js",
+	"Material Request" : "public/js/material_request.js",
 }
 doctype_list_js = {
-    "Material Request": "public/js/material_request_list.js",
+	"Material Request": "public/js/material_request_list.js",
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -197,7 +198,10 @@ doc_events = {
 	},
 	"Material Request": {
 		"validate": "warehouse_management.events.material_request.validate_warehouse_manager",
-		"on_update": "warehouse_management.events.material_request.notify_warehouse_manager"
+		"on_update": [
+			"warehouse_management.events.material_request.notify_warehouse_manager",
+			"warehouse_management.events.material_request.update_stock_available_at_source",
+		]
 	},
 	"Pick List": {
 		"validate": "warehouse_management.events.pick_list.validate_material_requests",

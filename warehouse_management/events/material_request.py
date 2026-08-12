@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 
 from warehouse_management.utils import get_managed_warehouses, get_manager_warehouse
+from warehouse_management.events.stock_availability import get_available_qty
 
 
 def notify_warehouse_manager(doc, method=None):
@@ -260,3 +261,23 @@ def get_active_warehouse():
     )
 
     return employee
+
+
+def update_stock_available_at_source(doc, method=None):
+	"""Update source stock for Material Request items on save.
+	Stock is summed from the source warehouse and included sub-warehouses.
+	"""
+	if doc.material_request_type != "Material Transfer":
+		return
+
+	warehouse = doc.set_from_warehouse
+
+	for item in doc.items:
+		if not item.item_code or not warehouse:
+			item.stock_available_at_source = 0
+			continue
+
+		item.stock_available_at_source = get_available_qty(
+			item.item_code,
+			warehouse,
+		)
