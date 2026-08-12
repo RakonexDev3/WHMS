@@ -12,8 +12,10 @@ fixtures = [
 	{
 		"doctype": "Custom Field",
 		"filters": [
-			["dt", "in", ["Purchase Receipt Item", "Stock Entry Detail"]],
-			["fieldname", "in", ["rack", "bin", "date_of_assignment", "expiry_date"]]
+			["dt", "in", ["Purchase Receipt Item", "Stock Entry Detail", "Material Request Item", "Warehouse"]],
+			["fieldname", "in", [
+				"rack", "bin", "date_of_assignment", "expiry_date", "stock_available_at_source", "include_in_transaction"
+			]]
 		]
 	},
 	{
@@ -37,7 +39,12 @@ fixtures = [
 	{
 		"doctype": "Property Setter",
 		"filters": [
-			["name", "in", ["Material Request-set_from_warehouse-mandatory_depends_on", "Warehouse-warehouse_type-reqd"]]
+			["name", "in", [
+				"Material Request-set_from_warehouse-mandatory_depends_on",
+				"Warehouse-warehouse_type-reqd",
+				"Material Request Item-warehouse-in_list_view",
+				"Material Request Item-schedule_date-in_list_view"
+			]]
 		]
 	},
 	{
