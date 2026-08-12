@@ -9,4 +9,19 @@ frappe.ui.form.on("Warehouse", {
             };
         });
     },
+    warehouse_type(frm) {
+		frm.set_value(
+			"include_in_transaction",
+			["Bay", "Storage"].includes(frm.doc.warehouse_type) ? 1 : 0
+		);
+	},
+
+	refresh(frm) {
+		if (frm.is_new() && frm.doc.warehouse_type) {
+			frm.set_value(
+				"include_in_transaction",
+				["Bay", "Storage"].includes(frm.doc.warehouse_type) ? 1 : 0
+			);
+		}
+	},
 });

@@ -12,3 +12,6 @@ def validate_warehouse_type(doc, method=None):
         frappe.throw(
             _("Main warehouses cannot be marked as Bay or Hold")
         )
+
+    if doc.warehouse_type in ["Bay", "Storage"]:
+        doc.include_in_transaction = 1
