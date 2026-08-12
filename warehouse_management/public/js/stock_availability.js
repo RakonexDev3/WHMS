@@ -8,11 +8,13 @@ warehouse_management.preview_observer = null;
 
 warehouse_management.get_stock = function (
 	item_code,
-	company
+	company,
+	warehouse
 ) {
 	const key = [
 		item_code,
 		company || "",
+		warehouse || "",
 	].join("::");
 
 	if (warehouse_management.stock_cache[key]) {
@@ -27,6 +29,7 @@ warehouse_management.get_stock = function (
 		args: {
 			item_code: item_code,
 			company: company,
+			warehouse: warehouse,
 		},
 	}).then(function (r) {
 		const rows = r.message || [];
@@ -149,6 +152,9 @@ warehouse_management.append_stock = function () {
 		frm.doc.company ||
 		frappe.defaults.get_default("company");
 
+	const warehouse =
+		frm.doc.set_from_warehouse || null;
+
 	const safe_item_code =
 		frappe.utils.escape_html(item_code);
 
@@ -177,7 +183,8 @@ warehouse_management.append_stock = function () {
 	warehouse_management
 		.get_stock(
 			item_code,
-			company
+			company,
+			warehouse
 		)
 		.then(function (rows) {
 			if (
@@ -322,12 +329,10 @@ warehouse_management.reset_stock_preview = function () {
 };
 
 
-["Material Request", "Stock Entry"].forEach(function (doctype) {
-	frappe.ui.form.on(doctype, {
-		refresh(frm) {
-			warehouse_management.reset_stock_preview();
+frappe.ui.form.on("Material Request", {
+	refresh(frm) {
+		warehouse_management.reset_stock_preview();
 
-			warehouse_management.setup_stock_preview(frm);
-		},
-	});
+		warehouse_management.setup_stock_preview(frm);
+	},
 });
