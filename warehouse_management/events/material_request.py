@@ -270,6 +270,9 @@ def update_stock_available_at_source(doc, method=None):
 	if doc.material_request_type != "Material Transfer":
 		return
 
+	if doc.docstatus != 0:
+		return
+
 	warehouse = doc.set_from_warehouse
 
 	for item in doc.items:

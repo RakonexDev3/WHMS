@@ -1,5 +1,11 @@
 frappe.ui.form.on("Material Request", {
-	    refresh: function(frm) {
+	refresh: function(frm) {
+        if (frm.doc.docstatus === 0) {
+            update_available_stock(frm);
+        }
+
+        set_stock_at_source_tooltip(frm);
+
         setTimeout(() => {
             frm.page.wrapper
                 .find('.btn:contains("Approve"), .dropdown-item:contains("Approve")')
@@ -13,15 +19,31 @@ frappe.ui.form.on("Material Request", {
     },
 
 	set_from_warehouse(frm) {
-		update_available_stock(frm);
+		if (frm.doc.docstatus === 0) {
+			update_available_stock(frm);
+		}
 	},
 });
 
 frappe.ui.form.on("Material Request Item", {
 	item_code(frm, cdt, cdn) {
-		update_item_available_stock(frm, cdt, cdn);
+		if (frm.doc.docstatus === 0) {
+			update_item_available_stock(frm, cdt, cdn);
+		}
 	},
 });
+
+function set_stock_at_source_tooltip(frm) {
+	const tooltip = frm.doc.docstatus === 0
+		? __("Stock at Source (Currently Available)")
+		: __("Stock at Source (At Time of Approval)");
+
+	setTimeout(() => {
+		frm.fields_dict.items.grid.wrapper
+			.find('[data-fieldname="stock_available_at_source"]')
+			.attr("title", tooltip);
+	}, 100);
+}
 
 function update_available_stock(frm) {
 	const warehouse = frm.doc.set_from_warehouse;
@@ -35,7 +57,8 @@ function update_item_available_stock(frm, cdt, cdn, warehouse = frm.doc.set_from
 	const row = frappe.get_doc(cdt, cdn);
 
 	if (!warehouse || !row.item_code) {
-		frappe.model.set_value(cdt, cdn, "stock_available_at_source", 0);
+		row.stock_available_at_source = 0;
+		frm.refresh_field("items");
 		return;
 	}
 
@@ -47,7 +70,8 @@ function update_item_available_stock(frm, cdt, cdn, warehouse = frm.doc.set_from
 			warehouse: warehouse,
 		},
 		callback(r) {
-			frappe.model.set_value(cdt, cdn, "stock_available_at_source", r.message || 0);
+			row.stock_available_at_source = r.message || 0;
+            frm.refresh_field("items");
 		},
 	});
 }
