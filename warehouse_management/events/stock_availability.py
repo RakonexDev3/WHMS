@@ -118,10 +118,13 @@ def get_stock_availability(item_code, company=None, warehouse=None):
 
 
 @frappe.whitelist()
-def get_available_qty(item_code: str, warehouse: str) -> float:
+def get_available_qty_for_items(item_codes, warehouse):
 	"""Return total stock from the selected warehouse and its transaction-enabled sub-warehouses."""
-	if not item_code or not warehouse:
-		return 0.0
+	if not item_codes or not warehouse:
+		return {}
+
+	if isinstance(item_codes, str):
+		item_codes = frappe.parse_json(item_codes)
 
 	warehouses = frappe.get_all(
 		"Warehouse",
@@ -129,11 +132,7 @@ def get_available_qty(item_code: str, warehouse: str) -> float:
 			"disabled": 0,
 			"include_in_transaction": 1,
 		},
-		fields=[
-			"name",
-			"is_sub_warehouse",
-			"main_warehouse",
-		],
+		fields=["name", "is_sub_warehouse", "main_warehouse"],
 	)
 
 	warehouse_names = [
@@ -147,20 +146,34 @@ def get_available_qty(item_code: str, warehouse: str) -> float:
 	]
 
 	if not warehouse_names:
-		return 0.0
+		return {item_code: 0 for item_code in item_codes}
 
-	return flt(
-		frappe.db.sql(
-			"""
-			SELECT COALESCE(SUM(actual_qty), 0)
-			FROM `tabBin`
-			WHERE item_code = %s
-			AND warehouse IN %s
-			""",
-			(item_code, warehouse_names),
-		)[0][0]
+	rows = frappe.db.sql(
+		"""
+		SELECT
+			item_code,
+			COALESCE(SUM(actual_qty), 0) AS actual_qty
+		FROM `tabBin`
+		WHERE item_code IN %(item_codes)s
+		AND warehouse IN %(warehouses)s
+		GROUP BY item_code
+		""",
+		{
+			"item_codes": item_codes,
+			"warehouses": warehouse_names,
+		},
+		as_dict=True,
 	)
 
+	stock_map = {
+		row.item_code: row.actual_qty
+		for row in rows
+	}
+
+	return {
+		item_code: stock_map.get(item_code, 0)
+		for item_code in item_codes
+	}
 
 @frappe.whitelist()
 def get_active_warehouse():

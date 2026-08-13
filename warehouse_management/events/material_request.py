@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 
 from warehouse_management.utils import get_managed_warehouses, get_manager_warehouse
-from warehouse_management.events.stock_availability import get_available_qty
+from warehouse_management.events.stock_availability import get_available_qty_for_items
 
 
 def notify_warehouse_manager(doc, method=None):
@@ -264,27 +264,39 @@ def get_active_warehouse():
 
 
 def update_stock_available_at_source(doc, method=None):
-	"""Update source stock for Material Request items on save.
-	Stock is summed from the source warehouse and included sub-warehouses.
-	"""
-	if doc.material_request_type != "Material Transfer":
-		return
+    """Update source stock for Material Request items on save.
+    Stock is summed from the source warehouse and included sub-warehouses.
+    """
+    if doc.material_request_type != "Material Transfer":
+        return
 
-	if doc.docstatus != 0:
-		return
+    if doc.docstatus != 0:
+        return
 
-	warehouse = doc.set_from_warehouse
+    warehouse = doc.set_from_warehouse
 
-	for item in doc.items:
-		if not item.item_code or not warehouse:
-			item.stock_available_at_source = 0
-			continue
+    if not warehouse:
+        for item in doc.items:
+            item.stock_available_at_source = 0
+        return
 
-		item.stock_available_at_source = get_available_qty(
-			item.item_code,
-			warehouse,
-		)
+    item_codes = list({
+        item.item_code
+        for item in doc.items
+        if item.item_code
+    })
 
+    if not item_codes:
+        return
+
+    stock_map = get_available_qty_for_items(item_codes, warehouse)
+
+    for item in doc.items:
+        item.stock_available_at_source = (
+            stock_map.get(item.item_code, 0)
+            if item.item_code
+            else 0
+        )
 
 @frappe.whitelist()
 def get_conflicting_pending_mrs(material_request):

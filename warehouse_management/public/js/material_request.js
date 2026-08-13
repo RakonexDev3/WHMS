@@ -28,7 +28,7 @@ frappe.ui.form.on("Material Request", {
 frappe.ui.form.on("Material Request Item", {
 	item_code(frm, cdt, cdn) {
 		if (frm.doc.docstatus === 0) {
-			update_item_available_stock(frm, cdt, cdn);
+			update_available_stock(frm, cdt, cdn);
 		}
 	},
 });
@@ -48,30 +48,37 @@ function set_stock_at_source_tooltip(frm) {
 function update_available_stock(frm) {
 	const warehouse = frm.doc.set_from_warehouse;
 
-	(frm.doc.items || []).forEach((row) => {
-		update_item_available_stock(frm, row.doctype, row.name, warehouse);
-	});
-}
+	if (!warehouse) {
+		(frm.doc.items || []).forEach((row) => {
+			row.stock_available_at_source = 0;
+		});
+		return;
+	}
 
-function update_item_available_stock(frm, cdt, cdn, warehouse = frm.doc.set_from_warehouse) {
-	const row = frappe.get_doc(cdt, cdn);
+	const item_codes = [...new Set(
+		(frm.doc.items || [])
+			.map(row => row.item_code)
+			.filter(Boolean)
+	)];
 
-	if (!warehouse || !row.item_code) {
-		row.stock_available_at_source = 0;
-		frm.refresh_field("items");
+	if (!item_codes.length) {
 		return;
 	}
 
 	frappe.call({
-		method:
-			"warehouse_management.events.stock_availability.get_available_qty",
+		method: "warehouse_management.events.stock_availability.get_available_qty_for_items",
 		args: {
-			item_code: row.item_code,
+			item_codes: item_codes,
 			warehouse: warehouse,
 		},
 		callback(r) {
-			row.stock_available_at_source = r.message || 0;
-            frm.refresh_field("items");
+			const stock_map = r.message || {};
+
+			(frm.doc.items || []).forEach((row) => {
+				row.stock_available_at_source = stock_map[row.item_code] || 0;
+			});
+
+			set_stock_at_source_tooltip(frm);
 		},
 	});
 }
