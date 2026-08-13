@@ -31,6 +31,13 @@ frappe.query_reports["Stock Replenishment Report"] = {
     onload(report) {
         warehouse_management.setup_report_hover(report);
 
+        frappe.call({
+            method: "warehouse_management.events.stock_availability.get_active_warehouse",
+            callback(r) {
+                warehouse_management.report_warehouse = r.message || null;
+            },
+        });
+
         report.page.add_inner_button(
             __("Material Request"),
             () => {
@@ -93,6 +100,7 @@ warehouse_management.setup_report_hover = function (report) {
 				warehouse_management.current_frm = {
 					doc: {
 						company: frappe.defaults.get_default("company"),
+						set_from_warehouse: warehouse_management.report_warehouse,
 					},
 				};
 

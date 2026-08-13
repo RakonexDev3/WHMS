@@ -92,6 +92,7 @@ def get_data(filters):
         .on(Warehouse.name == ItemReorder.warehouse)
         .select(
             Item.name.as_("item_code"),
+            Item.item_name,
             Item.stock_uom,
             ItemReorder.warehouse,
             ItemReorder.warehouse_reorder_level.as_("critical_qty"),
