@@ -1,0 +1,82 @@
+{
+ "actions": [],
+ "autoname": "BOX-.#####",
+ "creation": "2026-08-14 15:14:34.427424",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "packing_list",
+  "column_break_slcm",
+  "total_items",
+  "section_break_wobj",
+  "items"
+ ],
+ "fields": [
+  {
+   "fieldname": "packing_list",
+   "fieldtype": "Link",
+   "label": "Packing List",
+   "options": "Packing List"
+  },
+  {
+   "fieldname": "section_break_wobj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Box Items"
+  },
+  {
+   "fieldname": "column_break_slcm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_items",
+   "fieldtype": "Float",
+   "label": "Total Items",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-17 14:12:14.344151",
+ "modified_by": "Administrator",
+ "module": "Warehouse Management",
+ "name": "Box",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Warehouse Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

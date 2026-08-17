@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-13 18:20:45.583587",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "box_id",
+  "column_break_olmw",
+  "total_item"
+ ],
+ "fields": [
+  {
+   "fieldname": "box_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Box ID",
+   "options": "Box",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_olmw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_item",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Total Items",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-14 15:17:31.276357",
+ "modified_by": "Administrator",
+ "module": "Warehouse Management",
+ "name": "Packing List Box",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
