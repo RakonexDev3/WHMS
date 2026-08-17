@@ -27,7 +27,7 @@ fixtures = [
 	{
 		"doctype": "Workflow State",
 		"filters": [
-			["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked", "In Transit", "Completed"]]
+			["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked", "Packed", "In Transit", "Completed"]]
 		]
 	},
 	{
@@ -100,6 +100,7 @@ doctype_js = {
 }
 doctype_list_js = {
 	"Material Request": "public/js/material_request_list.js",
+	"Pick List": "public/js/pick_list.js",
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -198,7 +199,7 @@ doc_events = {
 	},
 	"Material Request": {
 		"validate": "warehouse_management.events.material_request.validate_warehouse_manager",
-        "before_save": "warehouse_management.events.material_request.update_stock_available_at_source",
+		"before_save": "warehouse_management.events.material_request.update_stock_available_at_source",
 		"on_update": "warehouse_management.events.material_request.notify_warehouse_manager",
 	},
 	"Pick List": {
