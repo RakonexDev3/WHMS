@@ -61,5 +61,14 @@
   "name": "Completed",
   "style": "Success",
   "workflow_state_name": "Completed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2026-08-14 14:24:44.480450",
+  "name": "Packed",
+  "style": "Warning",
+  "workflow_state_name": "Packed"
  }
 ]
