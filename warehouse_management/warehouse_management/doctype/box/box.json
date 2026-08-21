@@ -1,10 +1,11 @@
 {
  "actions": [],
- "autoname": "BOX-.#####",
+ "autoname": "field:box_id",
  "creation": "2026-08-14 15:14:34.427424",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "box_id",
   "packing_list",
   "column_break_slcm",
   "total_items",
@@ -15,8 +16,10 @@
   {
    "fieldname": "packing_list",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Packing List",
-   "options": "Packing List"
+   "options": "Packing List",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_wobj",
@@ -37,16 +40,24 @@
    "fieldtype": "Float",
    "label": "Total Items",
    "read_only": 1
+  },
+  {
+   "fieldname": "box_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Box ID",
+   "reqd": 1,
+   "unique": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-17 14:12:14.344151",
+ "modified": "2026-08-20 17:36:39.469141",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Box",
- "naming_rule": "Expression",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
