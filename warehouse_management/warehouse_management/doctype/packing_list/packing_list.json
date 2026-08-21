@@ -8,13 +8,12 @@
  "field_order": [
   "section_break_xqld",
   "naming_series",
-  "company",
   "pick_list",
   "material_request",
   "amended_from",
   "column_break_xyqm",
-  "source_warehouse",
-  "destination_warehouse",
+  "company",
+  "outward_warehouse",
   "section_break_gsxy",
   "items"
  ],
@@ -42,6 +41,7 @@
   {
    "fieldname": "pick_list",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Pick List",
    "options": "Pick List"
   },
@@ -65,22 +65,6 @@
    "reqd": 1
   },
   {
-   "fetch_from": "pick_list.source_warehouse",
-   "fetch_if_empty": 1,
-   "fieldname": "source_warehouse",
-   "fieldtype": "Link",
-   "label": "Source Warehouse",
-   "options": "Warehouse"
-  },
-  {
-   "fetch_from": "pick_list.destination_warehouse",
-   "fetch_if_empty": 1,
-   "fieldname": "destination_warehouse",
-   "fieldtype": "Link",
-   "label": "Destination Warehouse",
-   "options": "Warehouse"
-  },
-  {
    "fieldname": "section_break_gsxy",
    "fieldtype": "Section Break"
   },
@@ -89,13 +73,20 @@
    "fieldtype": "Table",
    "label": "Boxes ",
    "options": "Packing List Box"
+  },
+  {
+   "fieldname": "outward_warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-17 12:31:50.366386",
+ "modified": "2026-08-20 17:36:06.744634",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List",

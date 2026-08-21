@@ -3,6 +3,13 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Warehouse Type",
+  "modified": "2026-08-19 10:58:52.952484",
+  "name": "Outward"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Warehouse Type",
   "modified": "2026-08-07 14:42:52.151422",
   "name": "Bay"
  },

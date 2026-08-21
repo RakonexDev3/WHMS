@@ -12,9 +12,9 @@ fixtures = [
 	{
 		"doctype": "Custom Field",
 		"filters": [
-			["dt", "in", ["Purchase Receipt Item", "Stock Entry Detail", "Material Request Item", "Warehouse"]],
+			["dt", "in", ["Purchase Receipt Item", "Stock Entry Detail", "Material Request Item"]],
 			["fieldname", "in", [
-				"rack", "bin", "date_of_assignment", "expiry_date", "stock_available_at_source", "include_in_transaction"
+				"rack", "bin", "date_of_assignment", "expiry_date", "stock_available_at_source"
 			]]
 		]
 	},
@@ -50,7 +50,7 @@ fixtures = [
 	{
 		"doctype": "Warehouse Type",
 		"filters": [
-			["name", "in", ["Bay", "Storage", "Hold"]]
+			["name", "in", ["Bay", "Storage", "Hold", "Outward"]]
 		]
 	},
 ]
