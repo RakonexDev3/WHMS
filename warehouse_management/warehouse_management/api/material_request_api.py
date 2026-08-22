@@ -677,3 +677,47 @@ def get_transit_stock_entries(destination_warehouse):
         }
         for entry in stock_entries
     ]
+
+
+@frappe.whitelist()
+def get_pick_lists():
+    """Return submitted Pick Lists for the logged-in Picker's active warehouse."""
+
+    roles = frappe.get_roles(frappe.session.user)
+
+    if "Picker" not in roles:
+        frappe.throw(
+            _("Only users with Picker role can access Pick Lists.")
+        )
+
+    active_warehouse = frappe.db.get_value(
+        "Employee",
+        {"user_id": frappe.session.user},
+        "active_warehouse",
+    )
+
+    if not active_warehouse:
+        frappe.throw(_("Active Warehouse is not set for the user."))
+
+    pick_lists = frappe.get_all(
+        "Pick List",
+        filters={
+            "docstatus": 1,
+            "status": "Open",
+            "source_warehouse": active_warehouse,
+        },
+        order_by="modified desc",
+    )
+
+    for pick_list in pick_lists:
+        pick_list["has_packing_list"] = bool(
+            frappe.db.exists(
+                "Packing List",
+                {
+                    "pick_list": pick_list.name,
+                    "docstatus": 1,
+                },
+            )
+        )
+
+    return {"data": pick_lists}
