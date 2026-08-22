@@ -23,6 +23,8 @@ def update_material_request_workflow(doc, method=None):
             update_modified=False,
         )
 
+        cleanup_packing_list(doc.material_request)
+
 
 def create_bin_assignments_on_stock_entry_submit(doc, method):
     """Create Bin Assignment records for Stock Entry items having Rack & Bin."""
@@ -111,3 +113,32 @@ def revert_material_request_workflow(doc, method=None):
                 "In Transit",
                 update_modified=False,
             )
+
+
+def cleanup_packing_list(material_request):
+    packing_lists = frappe.get_all(
+        "Packing List",
+        filters={
+            "material_request": material_request,
+        },
+        pluck="name",
+    )
+
+    for packing_list_name in packing_lists:
+        boxes = frappe.get_all(
+            "Box",
+            filters={
+                "packing_list": packing_list_name,
+            },
+            pluck="name",
+        )
+        
+        for box_name in boxes:
+            frappe.db.delete("Box", {"name": box_name})
+
+        packing_list = frappe.get_doc("Packing List", packing_list_name)
+
+        if packing_list.docstatus == 1:
+            packing_list.cancel()
+        
+        frappe.delete_doc("Packing List", packing_list_name, ignore_permissions=True)
