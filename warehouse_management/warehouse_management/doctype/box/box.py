@@ -93,10 +93,7 @@ class Box(Document):
 		if not self.packing_list:
 			return
 
-		packing_list = frappe.get_doc(
-			"Packing List",
-			self.packing_list
-		)
+		packing_list = frappe.get_doc("Packing List", self.packing_list)
 
 		if packing_list.docstatus != 0:
 			return
@@ -130,10 +127,7 @@ class Box(Document):
 		if not self.packing_list:
 			return
 
-		packing_list = frappe.get_doc(
-			"Packing List",
-			self.packing_list
-		)
+		packing_list = frappe.get_doc("Packing List", self.packing_list)
 
 		if packing_list.docstatus != 0:
 			return

@@ -31,4 +31,4 @@ def validate_warehouse_type(doc, method=None):
         if existing_outward:
             frappe.throw(
                 _("Only one Outward warehouse is allowed per main warehouse.")
-                )
+            )

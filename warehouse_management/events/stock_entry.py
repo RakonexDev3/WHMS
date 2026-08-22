@@ -134,21 +134,11 @@ def cleanup_packing_list(material_request):
         )
         
         for box_name in boxes:
-            frappe.db.delete(
-                "Box",
-                {"name": box_name},
-            )
+            frappe.db.delete("Box", {"name": box_name})
 
-        packing_list = frappe.get_doc(
-            "Packing List",
-            packing_list_name,
-        )
+        packing_list = frappe.get_doc("Packing List", packing_list_name)
 
         if packing_list.docstatus == 1:
             packing_list.cancel()
         
-        frappe.delete_doc(
-            "Packing List",
-            packing_list_name,
-            ignore_permissions=True,
-        )
+        frappe.delete_doc("Packing List", packing_list_name, ignore_permissions=True)
