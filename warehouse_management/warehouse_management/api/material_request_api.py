@@ -213,6 +213,33 @@ def create_pick_list_from_bins(data=None):
         )
 
     # ---------------------------------------------------------
+    # Validate Picked Quantity Against Material Request
+    # ---------------------------------------------------------
+
+    mr_requested_qty = {}
+
+    for row in mr.items:
+        mr_requested_qty[row.item_code] = (
+            mr_requested_qty.get(row.item_code, 0) + flt(row.qty)
+        )
+
+    for item_code, picked_data in picked_items.items():
+        picked_qty = flt(picked_data["qty"])
+        requested_qty = flt(mr_requested_qty.get(item_code, 0))
+
+        if picked_qty > requested_qty:
+            frappe.throw(
+                _(
+                    "Picking quantity {0} for Item {1} cannot be greater "
+                    "than Material Request quantity {2}."
+                ).format(
+                    picked_qty,
+                    item_code,
+                    requested_qty,
+                )
+            )
+
+    # ---------------------------------------------------------
     # Create Pick List
     # ---------------------------------------------------------
 
@@ -509,6 +536,20 @@ def create_stock_entry(data=None):
             if qty <= 0:
                 continue
 
+            picked_qty = flt(row.qty)
+
+            if qty > picked_qty:
+                frappe.throw(
+                    _(
+                        "Transit quantity {0} for Item {1} cannot be greater "
+                        "than picked quantity {2}."
+                    ).format(
+                        qty,
+                        row.item_code,
+                        picked_qty,
+                    )
+                )
+
             stock_entry.append(
                 "items",
                 {
@@ -522,6 +563,7 @@ def create_stock_entry(data=None):
                     "conversion_factor": row.conversion_factor or 1,
                     "s_warehouse": packing_list.outward_warehouse,
                     "t_warehouse": transit_wh,
+                    "material_request_item": row.material_request_item,
                 },
             )
 

@@ -10,6 +10,8 @@
   "naming_series",
   "pick_list",
   "material_request",
+  "source_warehouse",
+  "destination_warehouse",
   "amended_from",
   "column_break_xyqm",
   "company",
@@ -43,7 +45,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Pick List",
-   "options": "Pick List"
+   "options": "Pick List",
+   "reqd": 1
   },
   {
    "fetch_from": "pick_list.material_request",
@@ -80,13 +83,31 @@
    "label": "Warehouse",
    "options": "Warehouse",
    "reqd": 1
+  },
+  {
+   "fetch_from": "pick_list.source_warehouse",
+   "fetch_if_empty": 1,
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Source Warehouse",
+   "options": "Warehouse",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "pick_list.destination_warehouse",
+   "fetch_if_empty": 1,
+   "fieldname": "destination_warehouse",
+   "fieldtype": "Link",
+   "label": "Destination Warehouse",
+   "options": "Warehouse",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-20 17:36:06.744634",
+ "modified": "2026-08-21 14:59:30.165202",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List",

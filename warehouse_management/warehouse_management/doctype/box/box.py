@@ -19,7 +19,7 @@ class Box(Document):
 		self.sync_with_packing_list()
 
 	def on_trash(self):
-		self.update_pick_list_packed_qty()
+		self.update_pick_list_packed_qty(exclude_current=True)
 		self.remove_from_packing_list()
 
 	def update_total_items(self):
@@ -30,7 +30,7 @@ class Box(Document):
 			for row in self.items
 		)
 
-	def update_pick_list_packed_qty(self):
+	def update_pick_list_packed_qty(self, exclude_current=False):
 		"""Update packed quantities on the linked Pick List from all boxes."""
 
 		if not self.packing_list:
@@ -45,12 +45,17 @@ class Box(Document):
 		if not pick_list_name:
 			return
 
+		filters = {
+			"packing_list": self.packing_list,
+			"docstatus": 0,
+		}
+
+		if exclude_current:
+			filters["name"] = ["!=", self.name]
+
 		boxes = frappe.get_all(
 			"Box",
-			filters={
-				"packing_list": self.packing_list,
-				"docstatus": 0,
-			},
+			filters=filters,
 			pluck="name",
 		)
 
