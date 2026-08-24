@@ -21,7 +21,7 @@ def validate_warehouse_type(doc, method=None):
         existing_outward = frappe.db.exists(
             "Warehouse",
             {
-                "parent_warehouse": doc.parent_warehouse,
+                "main_warehouse": doc.main_warehouse,
                 "warehouse_type": "Outward",
                 "is_sub_warehouse": 1,
                 "name": ["!=", doc.name],
