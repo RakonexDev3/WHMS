@@ -588,9 +588,24 @@ def create_stock_entry(data=None):
         outward_se = data.get("stock_entry")
         outward = frappe.get_doc("Stock Entry", outward_se)
 
+        bay_warehouse = frappe.db.get_value(
+            "Warehouse",
+            {
+                "main_warehouse": destination_wh,
+                "warehouse_type": "Bay",
+                "is_sub_warehouse": 1,
+            },
+            "name",
+        )
+
+        if not bay_warehouse:
+            frappe.throw(
+                _("Bay warehouse not found for {0}").format(destination_wh)
+            )
+
         stock_entry = frappe.get_doc(make_stock_in_entry(outward.name))
         stock_entry.from_warehouse = outward.to_warehouse
-        stock_entry.to_warehouse = destination_wh
+        stock_entry.to_warehouse = bay_warehouse
         stock_entry.destination_warehouse = None
         stock_entry.add_to_transit = 0
         stock_entry.pick_list = outward.pick_list
@@ -601,7 +616,7 @@ def create_stock_entry(data=None):
         for request in items:
             item_code = request.get("item_code")
 
-            if not item_code:
+            if item_code:
                 request_map.setdefault(item_code, []).append(request)
 
         original_rows = list(stock_entry.items)
@@ -616,11 +631,12 @@ def create_stock_entry(data=None):
                 if qty <= 0:
                     continue
 
-                new_row = stock_entry.append("items", row.as_dict())
+                new_row = stock_entry.append("items", {})
+                new_row.update(row.as_dict())
                 new_row.qty = qty
                 new_row.transfer_qty = qty
                 new_row.s_warehouse = outward.to_warehouse
-                new_row.t_warehouse = destination_wh
+                new_row.t_warehouse = bay_warehouse
                 new_row.pick_list_item = None
 
                 if request.get("rack"):
@@ -639,7 +655,7 @@ def create_stock_entry(data=None):
             "pick_list": outward.pick_list,
             "material_request": outward.material_request,
             "from_warehouse": outward.to_warehouse,
-            "to_warehouse": destination_wh,
+            "to_warehouse": bay_warehouse,
         }
 
     return response
