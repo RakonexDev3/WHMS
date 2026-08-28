@@ -748,10 +748,19 @@ def get_pick_lists():
 
 @frappe.whitelist()
 def get_pick_list_items(pick_list):
-    """Return Pick List items for the mobile app."""
+    """Return Pick List items with packed qty."""
 
     if not pick_list:
         frappe.throw(_("Pick List is required."))
+
+    packing_list = frappe.db.get_value(
+        "Packing List",
+        {
+            "pick_list": pick_list,
+        },
+        "name",
+        order_by="creation desc",
+    )
 
     items = frappe.get_all(
         "Pick List Item",
@@ -772,4 +781,7 @@ def get_pick_list_items(pick_list):
         order_by="idx asc",
     )
 
-    return {"data": items}
+    return {
+        "packing_list": packing_list,
+        "data": items,
+    }
