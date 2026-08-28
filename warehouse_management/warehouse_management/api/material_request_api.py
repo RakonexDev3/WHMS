@@ -681,7 +681,7 @@ def get_transit_stock_entries(destination_warehouse):
 
 @frappe.whitelist()
 def get_pick_lists():
-    """Return submitted Pick Lists for the logged-in Picker's active warehouse."""
+    """Return open Pick Lists for the logged-in Picker's active warehouse."""
 
     roles = frappe.get_roles(frappe.session.user)
 
@@ -709,15 +709,67 @@ def get_pick_lists():
         order_by="modified desc",
     )
 
+    if not pick_lists:
+        return {"data": []}
+
+    pick_list_names = [row.name for row in pick_lists]
+
+    packing_lists = frappe.get_all(
+        "Packing List",
+        filters={
+            "pick_list": ["in", pick_list_names],
+        },
+        fields=["name", "pick_list", "docstatus"],
+        order_by="creation desc",
+    )
+
+    packing_list_map = {}
+
+    for row in packing_lists:
+        if row.pick_list not in packing_list_map:
+            packing_list_map[row.pick_list] = row
+
+    result = []
+
     for pick_list in pick_lists:
-        pick_list["has_packing_list"] = bool(
-            frappe.db.exists(
-                "Packing List",
-                {
-                    "pick_list": pick_list.name,
-                    "docstatus": 1,
-                },
-            )
+        packing_list = packing_list_map.get(pick_list.name)
+
+        if packing_list and packing_list.docstatus == 1:
+            continue
+
+        pick_list["packing_list"] = (
+            packing_list.name if packing_list else None
         )
 
-    return {"data": pick_lists}
+        result.append(pick_list)
+
+    return {"data": result}
+
+
+@frappe.whitelist()
+def get_pick_list_items(pick_list):
+    """Return Pick List items for the mobile app."""
+
+    if not pick_list:
+        frappe.throw(_("Pick List is required."))
+
+    items = frappe.get_all(
+        "Pick List Item",
+        filters={
+            "parent": pick_list,
+            "parenttype": "Pick List",
+            "parentfield": "locations",
+        },
+        fields=[
+            "name",
+            "item_code",
+            "item_name",
+            "qty",
+            "picked_qty",
+            "packed_qty",
+            "uom",
+        ],
+        order_by="idx asc",
+    )
+
+    return {"data": items}
