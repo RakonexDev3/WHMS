@@ -507,6 +507,7 @@ def create_stock_entry(data=None):
         )
 
         stock_entry = frappe.new_doc("Stock Entry")
+
         stock_entry.update({
             "stock_entry_type": "Material Transfer",
             "purpose": "Material Transfer",
@@ -519,36 +520,11 @@ def create_stock_entry(data=None):
             "add_to_transit": 1,
         })
 
-        item_map = {
-            item.get("item_code"): item
-            for item in items
-            if item.get("item_code")
-        }
-
         for row in pick_list.locations:
-            request = item_map.get(row.item_code)
-
-            if not request:
-                continue
-
-            qty = flt(request.get("qty"))
+            qty = flt(row.qty)
 
             if qty <= 0:
                 continue
-
-            picked_qty = flt(row.qty)
-
-            if qty > picked_qty:
-                frappe.throw(
-                    _(
-                        "Transit quantity {0} for Item {1} cannot be greater "
-                        "than picked quantity {2}."
-                    ).format(
-                        qty,
-                        row.item_code,
-                        picked_qty,
-                    )
-                )
 
             stock_entry.append(
                 "items",
@@ -558,13 +534,20 @@ def create_stock_entry(data=None):
                     "description": row.description,
                     "qty": qty,
                     "transfer_qty": qty,
-                    "uom": request.get("uom") or row.uom,
+                    "uom": row.uom,
                     "stock_uom": row.stock_uom,
                     "conversion_factor": row.conversion_factor or 1,
                     "s_warehouse": packing_list.outward_warehouse,
                     "t_warehouse": transit_wh,
                     "material_request_item": row.material_request_item,
                 },
+            )
+
+        if not stock_entry.items:
+            frappe.throw(
+                _("No valid items found in Pick List {0}.").format(
+                    pick_list.name
+                )
             )
 
         stock_entry.insert(ignore_permissions=True)
@@ -574,6 +557,7 @@ def create_stock_entry(data=None):
             "action": action,
             "stock_entry": stock_entry.name,
             "pick_list": pick_list.name,
+            "packing_list": packing_list.name,
             "material_request": pick_list.material_request,
             "from_warehouse": packing_list.outward_warehouse,
             "to_warehouse": transit_wh,
