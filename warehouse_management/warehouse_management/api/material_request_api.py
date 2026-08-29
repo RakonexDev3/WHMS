@@ -769,3 +769,60 @@ def get_pick_list_items(pick_list):
         "packing_list": packing_list,
         "data": items,
     }
+
+
+@frappe.whitelist()
+def get_driver_packing_lists(source_warehouse):
+	"""Return submitted Packing Lists available for driver acceptance."""
+
+	packing_lists = frappe.get_all(
+		"Packing List",
+		filters={
+			"docstatus": 1,
+			"source_warehouse": source_warehouse,
+		},
+		fields=[
+			"name",
+			"pick_list",
+			"material_request",
+		],
+		order_by="modified desc",
+	)
+
+	if not packing_lists:
+		return {"data": []}
+
+	pick_list_names = {
+		row.pick_list
+		for row in packing_lists
+		if row.pick_list
+	}
+
+	if not pick_list_names:
+		return {"data": packing_lists}
+
+	# Find Pick Lists that already have a submitted Add-to-Transit Stock Entry.
+	transit_stock_entries = frappe.get_all(
+		"Stock Entry",
+		filters={
+			"pick_list": ["in", list(pick_list_names)],
+			"add_to_transit": 1,
+			"docstatus": 1,
+		},
+		fields=["pick_list"],
+	)
+
+	transit_pick_lists = {
+		row.pick_list
+		for row in transit_stock_entries
+		if row.pick_list
+	}
+
+	# Exclude Packing Lists whose Pick List is already moved to transit.
+	result = [
+		row
+		for row in packing_lists
+		if row.pick_list not in transit_pick_lists
+	]
+
+	return {"data": result}
