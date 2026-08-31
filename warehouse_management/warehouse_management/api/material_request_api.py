@@ -102,70 +102,86 @@ def create_pick_list_from_bins(data=None):
 
     mr = frappe.get_doc("Material Request", mr_id)
 
-    picked_items = {}
+    pick_list_name = frappe.db.exists(
+        "Pick List",
+        {
+            "material_request": mr.name,
+            "docstatus": 0,
+        },
+    )
+
+    is_new = not pick_list_name
+
+    if is_new:
+        pick_list = make_pick_list(mr.name)
+        pick_list.pick_manually = 1
+        pick_list.source_warehouse = mr.set_from_warehouse
+        pick_list.destination_warehouse = mr.set_warehouse
+        pick_list.locations = []
+    else:
+        pick_list = frappe.get_doc("Pick List", pick_list_name)
+
+    mr_qty = {}
+
+    for row in mr.items:
+        mr_qty[row.item_code] = (
+            mr_qty.get(row.item_code, 0) + flt(row.qty)
+        )
+
+    picked_qty = {}
+
+    for row in pick_list.locations:
+        picked_qty[row.item_code] = (
+            picked_qty.get(row.item_code, 0) + flt(row.qty)
+        )
+
+    mr_items = {row.item_code: row for row in mr.items}
     requested_bins = {}
+    current_qty = {}
 
     for item in items:
         item_code = item.get("item_code")
         bins = item.get("bins") or []
 
-        if not bins:
-            frappe.throw(
-                _("Storage Bin is required for Item {0}.").format(item_code)
-            )
-
-        picked_items.setdefault(
-            item_code,
-            {
-                "item_code": item_code,
-                "item_name": item.get("item_name"),
-                "uom": item.get("uom"),
-                "qty": 0,
-            },
-        )
-
         for bin_row in bins:
             bin_name = bin_row.get("bin")
-            picked_qty = flt(bin_row.get("qty"))
-            uom = bin_row.get("uom") or item.get("uom")
-
-            if not bin_name:
-                frappe.throw(
-                    _("Storage Bin is required for Item {0}.").format(item_code)
-                )
-
-            if picked_qty <= 0:
-                frappe.throw(
-                    _("Picking quantity must be greater than zero for Bin {0}.").format(
-                        bin_name
-                    )
-                )
+            qty = flt(bin_row.get("qty"))
 
             requested_bins[bin_name] = {
                 "item_code": item_code,
-                "qty": picked_qty,
-                "uom": uom,
+                "qty": qty,
+                "uom": bin_row.get("uom") or item.get("uom"),
             }
+
+            current_qty[item_code] = (
+                current_qty.get(item_code, 0) + qty
+            )
+
+    for item_code, qty in current_qty.items():
+        total_qty = picked_qty.get(item_code, 0) + qty
+
+        if total_qty > mr_qty[item_code]:
+            frappe.throw(
+                _(
+                    "Picking quantity {0} for Item {1} cannot be greater "
+                    "than Material Request quantity {2}."
+                ).format(
+                    total_qty,
+                    item_code,
+                    mr_qty[item_code],
+                )
+            )
 
     storage_bins = frappe.get_all(
         "Storage Bin",
         filters={"name": ["in", list(requested_bins)]},
-        fields=[
-            "name",
-            "rack",
-            "assigned_item",
-            "quantity",
-            "status",
-        ],
+        fields=["name", "rack", "assigned_item", "quantity", "status"],
     )
 
     storage_bin_map = {row.name: row for row in storage_bins}
-    bin_assignment_data = []
+    location_map = {row.item_code: row for row in pick_list.locations}
 
     for bin_name, request in requested_bins.items():
-        item_code = request["item_code"]
-        picked_qty = request["qty"]
-
         storage_bin = storage_bin_map.get(bin_name)
 
         if not storage_bin:
@@ -173,11 +189,10 @@ def create_pick_list_from_bins(data=None):
                 _("Storage Bin {0} does not exist.").format(bin_name)
             )
 
-        if storage_bin.assigned_item != item_code:
+        if storage_bin.assigned_item != request["item_code"]:
             frappe.throw(
-                _("Storage Bin {0} is not assigned to Item {1}.").format(
-                    bin_name, item_code
-                )
+                _("Storage Bin {0} is not assigned to Item {1}.")
+                .format(bin_name, request["item_code"])
             )
 
         if storage_bin.status != "Occupied":
@@ -185,7 +200,7 @@ def create_pick_list_from_bins(data=None):
                 _("Storage Bin {0} is not occupied.").format(bin_name)
             )
 
-        if picked_qty > flt(storage_bin.quantity):
+        if request["qty"] > flt(storage_bin.quantity):
             frappe.throw(
                 _(
                     "Insufficient quantity in Storage Bin {0}. "
@@ -193,106 +208,110 @@ def create_pick_list_from_bins(data=None):
                 ).format(
                     bin_name,
                     storage_bin.quantity,
-                    picked_qty,
+                    request["qty"],
                 )
             )
 
-        picked_items[item_code]["qty"] += picked_qty
+    for item_code, qty in current_qty.items():
+        row = location_map.get(item_code)
 
-        bin_assignment_data.append(
+        if row:
+            row.qty += qty
+            row.stock_qty = row.qty * flt(row.conversion_factor or 1)
+            continue
+
+        mr_item = mr_items[item_code]
+
+        row = pick_list.append(
+            "locations",
             {
-                "item": item_code,
-                "uom": uom,
-                "rack": storage_bin.rack,
-                "bin": storage_bin.name,
-                "quantity": -picked_qty,
-                "doa": nowdate(),
-                "assignment_type": assignment_type,
-                "material_request": mr_id,
-            }
+                "item_code": item_code,
+                "item_name": mr_item.item_name,
+                "description": mr_item.description,
+                "qty": qty,
+                "stock_qty": qty * flt(mr_item.conversion_factor or 1),
+                "uom": mr_item.uom,
+                "stock_uom": mr_item.stock_uom,
+                "conversion_factor": mr_item.conversion_factor or 1,
+                "warehouse": mr.set_from_warehouse,
+                "material_request": mr.name,
+                "material_request_item": mr_item.name,
+            },
         )
 
-    # ---------------------------------------------------------
-    # Validate Picked Quantity Against Material Request
-    # ---------------------------------------------------------
+        location_map[item_code] = row
 
-    mr_requested_qty = {}
-
-    for row in mr.items:
-        mr_requested_qty[row.item_code] = (
-            mr_requested_qty.get(row.item_code, 0) + flt(row.qty)
-        )
-
-    for item_code, picked_data in picked_items.items():
-        picked_qty = flt(picked_data["qty"])
-        requested_qty = flt(mr_requested_qty.get(item_code, 0))
-
-        if picked_qty > requested_qty:
-            frappe.throw(
-                _(
-                    "Picking quantity {0} for Item {1} cannot be greater "
-                    "than Material Request quantity {2}."
-                ).format(
-                    picked_qty,
-                    item_code,
-                    requested_qty,
-                )
-            )
-
-    # ---------------------------------------------------------
-    # Create Pick List
-    # ---------------------------------------------------------
-
-    pick_list = make_pick_list(mr.name)
     pick_list.pick_manually = 1
     pick_list.source_warehouse = mr.set_from_warehouse
     pick_list.destination_warehouse = mr.set_warehouse
 
-    picked_qty_by_item = {
-        item_code: flt(item["qty"])
-        for item_code, item in picked_items.items()
-    }
-
-    locations = {}
-
-    for row in pick_list.locations:
-        if row.item_code not in picked_qty_by_item:
-            continue
-
-        if row.item_code not in locations:
-            locations[row.item_code] = row
-
-        row.warehouse = mr.set_from_warehouse
-        row.qty = picked_qty_by_item[row.item_code]
-        row.stock_qty = row.qty * flt(row.conversion_factor or 1)
-
-    pick_list.locations = list(locations.values())
-    pick_list.insert()
-
-    # ---------------------------------------------------------
-    # Create Bin Assignments
-    # ---------------------------------------------------------
+    if is_new:
+        pick_list.insert(ignore_permissions=True)
+    else:
+        pick_list.save(ignore_permissions=True)
 
     bin_assignment_names = []
 
-    for assignment in bin_assignment_data:
-        assignment["pick_list"] = pick_list.name
+    for bin_name, request in requested_bins.items():
+        storage_bin = storage_bin_map[bin_name]
 
-        bin_assignment = frappe.get_doc(
-            {
-                "doctype": "Bin Assignment",
-                **assignment,
-            }
+        bin_assignment = frappe.get_doc({
+            "doctype": "Bin Assignment",
+            "item": request["item_code"],
+            "uom": request["uom"],
+            "rack": storage_bin.rack,
+            "bin": bin_name,
+            "quantity": -request["qty"],
+            "doa": nowdate(),
+            "assignment_type": assignment_type,
+            "material_request": mr.name,
+            "pick_list": pick_list.name,
+        })
+
+        bin_assignment.insert(ignore_permissions=True)
+        bin_assignment_names.append(bin_assignment.name)
+
+    return {
+        "pick_list": pick_list.name,
+        "bin_assignments": bin_assignment_names,
+        "status": "Draft",
+    }
+
+
+@frappe.whitelist()
+def complete_picking(pick_list):
+    pick_list = frappe.get_doc("Pick List", pick_list)
+    mr = frappe.get_doc("Material Request", pick_list.material_request)
+
+    required = {}
+    picked = {}
+
+    for row in mr.items:
+        required[row.item_code] = (
+            required.get(row.item_code, 0) + flt(row.qty)
         )
 
-        bin_assignment.insert()
-        bin_assignment_names.append(bin_assignment.name)
+    for row in pick_list.locations:
+        picked[row.item_code] = (
+            picked.get(row.item_code, 0) + flt(row.qty)
+        )
+
+    for item_code, required_qty in required.items():
+        picked_qty = picked.get(item_code, 0)
+
+        if picked_qty != required_qty:
+            frappe.throw(
+                _(
+                    "Picking is incomplete for Item {0}. "
+                    "Required: {1}, Picked: {2}."
+                ).format(item_code, required_qty, picked_qty)
+            )
 
     pick_list.submit()
 
     return {
         "pick_list": pick_list.name,
-        "bin_assignments": bin_assignment_names,
+        "status": "Submitted",
     }
 
 
@@ -773,56 +792,56 @@ def get_pick_list_items(pick_list):
 
 @frappe.whitelist()
 def get_driver_packing_lists(source_warehouse):
-	"""Return submitted Packing Lists available for driver acceptance."""
+    """Return submitted Packing Lists available for driver acceptance."""
 
-	packing_lists = frappe.get_all(
-		"Packing List",
-		filters={
-			"docstatus": 1,
-			"source_warehouse": source_warehouse,
-		},
-		fields=[
-			"name",
-			"pick_list",
-			"material_request",
-		],
-		order_by="modified desc",
-	)
+    packing_lists = frappe.get_all(
+        "Packing List",
+        filters={
+            "docstatus": 1,
+            "source_warehouse": source_warehouse,
+        },
+        fields=[
+            "name",
+            "pick_list",
+            "material_request",
+        ],
+        order_by="modified desc",
+    )
 
-	if not packing_lists:
-		return {"data": []}
+    if not packing_lists:
+        return {"data": []}
 
-	pick_list_names = {
-		row.pick_list
-		for row in packing_lists
-		if row.pick_list
-	}
+    pick_list_names = {
+        row.pick_list
+        for row in packing_lists
+        if row.pick_list
+    }
 
-	if not pick_list_names:
-		return {"data": packing_lists}
+    if not pick_list_names:
+        return {"data": packing_lists}
 
-	# Find Pick Lists that already have a submitted Add-to-Transit Stock Entry.
-	transit_stock_entries = frappe.get_all(
-		"Stock Entry",
-		filters={
-			"pick_list": ["in", list(pick_list_names)],
-			"add_to_transit": 1,
-			"docstatus": 1,
-		},
-		fields=["pick_list"],
-	)
+    # Find Pick Lists that already have a submitted Add-to-Transit Stock Entry.
+    transit_stock_entries = frappe.get_all(
+        "Stock Entry",
+        filters={
+            "pick_list": ["in", list(pick_list_names)],
+            "add_to_transit": 1,
+            "docstatus": 1,
+        },
+        fields=["pick_list"],
+    )
 
-	transit_pick_lists = {
-		row.pick_list
-		for row in transit_stock_entries
-		if row.pick_list
-	}
+    transit_pick_lists = {
+        row.pick_list
+        for row in transit_stock_entries
+        if row.pick_list
+    }
 
-	# Exclude Packing Lists whose Pick List is already moved to transit.
-	result = [
-		row
-		for row in packing_lists
-		if row.pick_list not in transit_pick_lists
-	]
+    # Exclude Packing Lists whose Pick List is already moved to transit.
+    result = [
+        row
+        for row in packing_lists
+        if row.pick_list not in transit_pick_lists
+    ]
 
-	return {"data": result}
+    return {"data": result}
