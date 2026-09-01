@@ -10,6 +10,56 @@ from erpnext.stock.doctype.stock_entry.stock_entry import make_stock_in_entry
 
 
 @frappe.whitelist()
+def get_material_requests(source_warehouse):
+    material_requests = frappe.get_all(
+        "Material Request",
+        filters={
+            "workflow_state": "Approved",
+            "material_request_type": "Material Transfer",
+            "set_from_warehouse": source_warehouse,
+        },
+        fields=["name"],
+        order_by="modified desc",
+    )
+
+    if not material_requests:
+        return {"data": []}
+
+    mr_names = [mr.name for mr in material_requests]
+
+    pick_lists = frappe.get_all(
+        "Pick List",
+        filters={
+            "material_request": ["in", mr_names],
+            "docstatus": ["<", 2],
+        },
+        fields=["name", "material_request", "modified"],
+        order_by="modified desc",
+    )
+
+    pick_list_map = {}
+
+    for row in pick_lists:
+        if row.material_request not in pick_list_map:
+            pick_list_map[row.material_request] = row.name
+
+    return {
+        "data": [
+            {
+                "mr_id": mr.name,
+                "pick_list": pick_list_map.get(mr.name),
+                "status": (
+                    "In Progress"
+                    if mr.name in pick_list_map
+                    else "To Start"
+                ),
+            }
+            for mr in material_requests
+        ]
+    }
+
+
+@frappe.whitelist()
 def get_material_request_stock(mr_id):
     mr = frappe.get_doc("Material Request", mr_id)
 
