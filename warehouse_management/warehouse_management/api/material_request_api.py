@@ -14,7 +14,6 @@ def get_material_request_stock(mr_id):
     mr = frappe.get_doc("Material Request", mr_id)
 
     warehouse = mr.set_from_warehouse
-
     item_codes = [row.item_code for row in mr.items]
 
     stock_by_item = {}
@@ -34,15 +33,45 @@ def get_material_request_stock(mr_id):
             for row in bins
         }
 
+    pick_lists = frappe.get_all(
+        "Pick List",
+        filters={
+            "material_request": mr.name,
+            "docstatus": ["<", 2],
+        },
+        fields=["name", "docstatus", "modified"],
+        order_by="modified desc",
+    )
+
+    pick_list = pick_lists[0] if pick_lists else None
+    picked_by_item = {}
+
+    if pick_list:
+        locations = frappe.get_all(
+            "Pick List Item",
+            filters={
+                "parent": pick_list.name,
+                "item_code": ["in", item_codes],
+            },
+            fields=["item_code", "qty"],
+        )
+
+        for row in locations:
+            picked_by_item[row.item_code] = (
+                picked_by_item.get(row.item_code, 0) + flt(row.qty)
+            )
+
     return {
         "mr_id": mr.name,
         "warehouse": warehouse,
+        "pick_list": pick_list.name if pick_list else None,
         "items": [
             {
                 "item_code": row.item_code,
                 "item_name": row.item_name,
                 "req_qty": row.qty,
                 "wh_stock_bal": stock_by_item.get(row.item_code, 0),
+                "picked_qty": picked_by_item.get(row.item_code, 0),
                 "uom": row.uom,
             }
             for row in mr.items
@@ -94,11 +123,7 @@ def create_pick_list_from_bins(data=None):
     data = data or frappe.form_dict
 
     mr_id = data.get("mr_id")
-    assignment_type = data.get("assgn_type")
     items = data.get("items") or []
-
-    if assignment_type != "Picking":
-        frappe.throw(_("Assignment Type must be Picking."))
 
     mr = frappe.get_doc("Material Request", mr_id)
 
@@ -110,23 +135,23 @@ def create_pick_list_from_bins(data=None):
         },
     )
 
-    is_new = not pick_list_name
-
-    if is_new:
+    if pick_list_name:
+        pick_list = frappe.get_doc("Pick List", pick_list_name)
+    else:
         pick_list = make_pick_list(mr.name)
         pick_list.pick_manually = 1
         pick_list.source_warehouse = mr.set_from_warehouse
         pick_list.destination_warehouse = mr.set_warehouse
         pick_list.locations = []
-    else:
-        pick_list = frappe.get_doc("Pick List", pick_list_name)
 
     mr_qty = {}
+    mr_items = {}
 
     for row in mr.items:
         mr_qty[row.item_code] = (
             mr_qty.get(row.item_code, 0) + flt(row.qty)
         )
+        mr_items[row.item_code] = row
 
     picked_qty = {}
 
@@ -135,7 +160,6 @@ def create_pick_list_from_bins(data=None):
             picked_qty.get(row.item_code, 0) + flt(row.qty)
         )
 
-    mr_items = {row.item_code: row for row in mr.items}
     requested_bins = {}
     current_qty = {}
 
@@ -150,7 +174,7 @@ def create_pick_list_from_bins(data=None):
             requested_bins[bin_name] = {
                 "item_code": item_code,
                 "qty": qty,
-                "uom": bin_row.get("uom") or item.get("uom"),
+                "uom": bin_row.get("uom") or mr_items[item_code].uom,
             }
 
             current_qty[item_code] = (
@@ -179,7 +203,6 @@ def create_pick_list_from_bins(data=None):
     )
 
     storage_bin_map = {row.name: row for row in storage_bins}
-    location_map = {row.item_code: row for row in pick_list.locations}
 
     for bin_name, request in requested_bins.items():
         storage_bin = storage_bin_map.get(bin_name)
@@ -212,6 +235,8 @@ def create_pick_list_from_bins(data=None):
                 )
             )
 
+    location_map = {row.item_code: row for row in pick_list.locations}
+
     for item_code, qty in current_qty.items():
         row = location_map.get(item_code)
 
@@ -222,7 +247,7 @@ def create_pick_list_from_bins(data=None):
 
         mr_item = mr_items[item_code]
 
-        row = pick_list.append(
+        pick_list.append(
             "locations",
             {
                 "item_code": item_code,
@@ -239,13 +264,11 @@ def create_pick_list_from_bins(data=None):
             },
         )
 
-        location_map[item_code] = row
-
     pick_list.pick_manually = 1
     pick_list.source_warehouse = mr.set_from_warehouse
     pick_list.destination_warehouse = mr.set_warehouse
 
-    if is_new:
+    if pick_list.is_new():
         pick_list.insert(ignore_permissions=True)
     else:
         pick_list.save(ignore_permissions=True)
@@ -263,7 +286,7 @@ def create_pick_list_from_bins(data=None):
             "bin": bin_name,
             "quantity": -request["qty"],
             "doa": nowdate(),
-            "assignment_type": assignment_type,
+            "assignment_type": "Picking",
             "material_request": mr.name,
             "pick_list": pick_list.name,
         })
@@ -573,10 +596,7 @@ def create_stock_entry(data=None):
         stock_entry.submit()
 
         response = {
-            "action": action,
             "stock_entry": stock_entry.name,
-            "pick_list": pick_list.name,
-            "packing_list": packing_list.name,
             "material_request": pick_list.material_request,
             "from_warehouse": packing_list.outward_warehouse,
             "to_warehouse": transit_wh,
@@ -636,10 +656,7 @@ def create_stock_entry(data=None):
         stock_entry.submit()
 
         response = {
-            "action": action,
             "stock_entry": stock_entry.name,
-            "outward_stock_entry": outward.name,
-            "pick_list": outward.pick_list,
             "material_request": outward.material_request,
             "from_warehouse": outward.to_warehouse,
             "to_warehouse": destination_wh,
@@ -661,22 +678,18 @@ def get_transit_stock_entries(destination_warehouse):
         },
         fields=[
             "name",
-            "pick_list",
             "material_request",
             "from_warehouse",
             "to_warehouse",
-            "destination_warehouse"
         ],
     )
 
     return [
         {
             "stock_entry": entry.name,
-            "pick_list": entry.pick_list,
             "material_request": entry.material_request,
             "from_warehouse": entry.from_warehouse,
             "transit_warehouse": entry.to_warehouse,
-            "destination_warehouse": destination_warehouse
         }
         for entry in stock_entries
     ]
@@ -686,12 +699,8 @@ def get_transit_stock_entries(destination_warehouse):
 def get_pick_lists():
     """Return open Pick Lists for the logged-in Picker's active warehouse."""
 
-    roles = frappe.get_roles(frappe.session.user)
-
-    if "Picker" not in roles:
-        frappe.throw(
-            _("Only users with Picker role can access Pick Lists.")
-        )
+    if "Picker" not in frappe.get_roles(frappe.session.user):
+        frappe.throw(_("Only users with Picker role can access Pick Lists."))
 
     active_warehouse = frappe.db.get_value(
         "Employee",
@@ -743,6 +752,9 @@ def get_pick_lists():
         pick_list["packing_list"] = (
             packing_list.name if packing_list else None
         )
+        pick_list["status"] = (
+            "In Progress" if packing_list else "To Start"
+        )
 
         result.append(pick_list)
 
@@ -752,9 +764,6 @@ def get_pick_lists():
 @frappe.whitelist()
 def get_pick_list_items(pick_list):
     """Return Pick List items with packed qty."""
-
-    if not pick_list:
-        frappe.throw(_("Pick List is required."))
 
     packing_list = frappe.db.get_value(
         "Packing List",
@@ -800,11 +809,7 @@ def get_driver_packing_lists(source_warehouse):
             "docstatus": 1,
             "source_warehouse": source_warehouse,
         },
-        fields=[
-            "name",
-            "pick_list",
-            "material_request",
-        ],
+        fields=["name"],
         order_by="modified desc",
     )
 
