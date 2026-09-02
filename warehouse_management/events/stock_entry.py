@@ -29,9 +29,6 @@ def update_material_request_workflow(doc, method=None):
 def create_bin_assignments_on_stock_entry_submit(doc, method):
     """Create Bin Assignment records for Stock Entry items having Rack & Bin."""
 
-    if doc.stock_entry_type != "Material Transfer":
-        return
-
     for item in doc.items:
         if not (item.rack and item.bin):
             continue

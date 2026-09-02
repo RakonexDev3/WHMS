@@ -18,7 +18,7 @@ def get_material_requests(source_warehouse):
             "material_request_type": "Material Transfer",
             "set_from_warehouse": source_warehouse,
         },
-        fields=["name"],
+        fields=["name", "set_from_warehouse", "set_warehouse"],
         order_by="modified desc",
     )
 
@@ -47,6 +47,8 @@ def get_material_requests(source_warehouse):
         "data": [
             {
                 "mr_id": mr.name,
+                "source_warehouse": mr.set_from_warehouse,
+                "target_warehouse": mr.set_warehouse,
                 "pick_list": pick_list_map.get(mr.name),
                 "status": (
                     "In Progress"
@@ -674,7 +676,7 @@ def create_stock_entry(data=None):
         for request in items:
             item_code = request.get("item_code")
 
-            if not item_code:
+            if item_code:
                 request_map.setdefault(item_code, []).append(request)
 
         original_rows = list(stock_entry.items)
