@@ -572,112 +572,140 @@ def complete_packing_list(data=None):
 
 @frappe.whitelist()
 def create_stock_entry(data=None):
+    """
+    Create and submit Add-to-Transit Stock Entry.
+    """
+
     if isinstance(data, str):
         data = json.loads(data)
 
     data = data or frappe.form_dict
 
-    action = data.get("action")
-    items = data.get("items", [])
+    transit_wh = data.get("transit_wh")
+    pl_id = data.get("pl_id")
 
-    if action not in ("add_to_transit", "end_transit"):
-        frappe.throw(_("Action must be 'add_to_transit' or 'end_transit'"))
+    pick_list = frappe.get_doc("Pick List", pl_id)
 
-    if action == "add_to_transit":
-        # -----------------------------------------------------
-        # Transit STOCK ENTRY
-        # -----------------------------------------------------
-        transit_wh = data.get("transit_wh")
-        pl_id = data.get("pl_id")
-
-        pick_list = frappe.get_doc("Pick List", pl_id)
-
-        packing_list = frappe.get_doc(
-            "Packing List",
-            {
-                "pick_list": pick_list.name,
-                "docstatus": 1,
-            },
-        )
-
-        stock_entry = frappe.new_doc("Stock Entry")
-
-        stock_entry.update({
-            "stock_entry_type": "Material Transfer",
-            "purpose": "Material Transfer",
-            "company": pick_list.company,
-            "from_warehouse": packing_list.outward_warehouse,
-            "to_warehouse": transit_wh,
-            "destination_warehouse": pick_list.destination_warehouse,
+    packing_list = frappe.get_doc(
+        "Packing List",
+        {
             "pick_list": pick_list.name,
-            "material_request": pick_list.material_request,
-            "add_to_transit": 1,
-        })
+            "docstatus": 1,
+        },
+    )
 
-        for row in pick_list.locations:
-            qty = flt(row.qty)
+    stock_entry = frappe.new_doc("Stock Entry")
 
-            if qty <= 0:
-                continue
+    stock_entry.update({
+        "stock_entry_type": "Material Transfer",
+        "purpose": "Material Transfer",
+        "company": pick_list.company,
+        "from_warehouse": packing_list.outward_warehouse,
+        "to_warehouse": transit_wh,
+        "destination_warehouse": pick_list.destination_warehouse,
+        "pick_list": pick_list.name,
+        "material_request": pick_list.material_request,
+        "add_to_transit": 1,
+    })
 
-            stock_entry.append(
-                "items",
-                {
-                    "item_code": row.item_code,
-                    "item_name": row.item_name,
-                    "description": row.description,
-                    "qty": qty,
-                    "transfer_qty": qty,
-                    "uom": row.uom,
-                    "stock_uom": row.stock_uom,
-                    "conversion_factor": row.conversion_factor or 1,
-                    "s_warehouse": packing_list.outward_warehouse,
-                    "t_warehouse": transit_wh,
-                    "material_request_item": row.material_request_item,
-                },
-            )
+    for row in pick_list.locations:
+        qty = flt(row.qty)
 
-        if not stock_entry.items:
-            frappe.throw(
-                _("No valid items found in Pick List {0}.").format(
-                    pick_list.name
-                )
-            )
+        if qty <= 0:
+            continue
 
-        stock_entry.insert(ignore_permissions=True)
-        stock_entry.submit()
-
-        response = {
-            "stock_entry": stock_entry.name,
-            "material_request": pick_list.material_request,
-            "from_warehouse": packing_list.outward_warehouse,
-            "to_warehouse": transit_wh,
-            "destination_warehouse": pick_list.destination_warehouse,
-        }
-
-    else:
-        # ---------------------------------------------------------
-        # End Transit STOCK ENTRY
-        # ---------------------------------------------------------
-        destination_wh = data.get("destination_wh")
-        outward_se = data.get("stock_entry")
-        outward = frappe.get_doc("Stock Entry", outward_se)
-
-        bay_warehouse = frappe.db.get_value(
-            "Warehouse",
+        stock_entry.append(
+            "items",
             {
-                "main_warehouse": destination_wh,
-                "warehouse_type": "Bay",
-                "is_sub_warehouse": 1,
+                "item_code": row.item_code,
+                "item_name": row.item_name,
+                "description": row.description,
+                "qty": qty,
+                "transfer_qty": qty,
+                "uom": row.uom,
+                "stock_uom": row.stock_uom,
+                "conversion_factor": row.conversion_factor or 1,
+                "s_warehouse": packing_list.outward_warehouse,
+                "t_warehouse": transit_wh,
+                "material_request_item": row.material_request_item,
             },
-            "name",
         )
 
-        if not bay_warehouse:
-            frappe.throw(
-                _("Bay warehouse not found for {0}").format(destination_wh)
-            )
+    if not stock_entry.items:
+        frappe.throw(
+            _("No valid items found in Pick List {0}.")
+            .format(pick_list.name)
+        )
 
+    stock_entry.insert(ignore_permissions=True)
+    stock_entry.submit()
+
+    return {
+        "stock_entry": stock_entry.name,
+        "material_request": pick_list.material_request,
+        "from_warehouse": packing_list.outward_warehouse,
+        "to_warehouse": transit_wh,
+        "destination_warehouse": pick_list.destination_warehouse,
+    }
+
+
+@frappe.whitelist()
+def create_end_transit_stock_entry(data=None):
+    """
+    Create End Transit draft Stock Entry on receiving items.
+    """
+
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    data = data or frappe.form_dict
+
+    outward_se = data.get("stock_entry")
+    destination_wh = data.get("destination_wh")
+    item_code = data.get("item_code")
+    qty = flt(data.get("qty"))
+    rack = data.get("rack")
+    bin = data.get("bin")
+
+    outward = frappe.get_doc("Stock Entry", outward_se)
+
+    # ---------------------------------------------------------
+    # Find Bay Warehouse
+    # ---------------------------------------------------------
+
+    bay_warehouse = frappe.db.get_value(
+        "Warehouse",
+        {
+            "main_warehouse": destination_wh,
+            "warehouse_type": "Bay",
+            "is_sub_warehouse": 1,
+        },
+        "name",
+    )
+
+    if not bay_warehouse:
+        frappe.throw(
+            _("Bay warehouse not found for {0}.")
+            .format(destination_wh)
+        )
+
+    # ---------------------------------------------------------
+    # Find Existing Draft End Transit Stock Entry
+    # ---------------------------------------------------------
+
+    existing_stock_entry = frappe.db.exists(
+        "Stock Entry",
+        {
+            "material_request": outward.material_request,
+            "add_to_transit": 0,
+            "docstatus": 0,
+            "from_warehouse": outward.to_warehouse,
+        },
+    )
+
+    if existing_stock_entry:
+        stock_entry = frappe.get_doc("Stock Entry", existing_stock_entry)
+    else:
         stock_entry = frappe.get_doc(make_stock_in_entry(outward.name))
         stock_entry.from_warehouse = outward.to_warehouse
         stock_entry.to_warehouse = bay_warehouse
@@ -685,52 +713,150 @@ def create_stock_entry(data=None):
         stock_entry.add_to_transit = 0
         stock_entry.pick_list = outward.pick_list
         stock_entry.material_request = outward.material_request
-
-        request_map = {}
-
-        for request in items:
-            item_code = request.get("item_code")
-
-            if item_code:
-                request_map.setdefault(item_code, []).append(request)
-
-        original_rows = list(stock_entry.items)
         stock_entry.set("items", [])
 
-        for row in original_rows:
-            requests = request_map.get(row.item_code, [{}])
+    transit_qty = sum(
+        flt(row.qty)
+        for row in outward.items
+        if row.item_code == item_code
+    )
 
-            for request in requests:
-                qty = flt(request.get("qty", row.qty))
+    received_qty = sum(
+        flt(row.qty)
+        for row in stock_entry.items
+        if row.item_code == item_code
+    )
 
-                if qty <= 0:
-                    continue
+    total_qty = received_qty + qty
 
-                new_row = stock_entry.append("items", {})
-                new_row.update(row.as_dict())
-                new_row.qty = qty
-                new_row.transfer_qty = qty
-                new_row.s_warehouse = outward.to_warehouse
-                new_row.t_warehouse = bay_warehouse
-                new_row.pick_list_item = None
+    if total_qty > transit_qty:
+        frappe.throw(
+            _(
+                "Received quantity for Item {0} cannot be "
+                "greater than Transit quantity. "
+                "Transit: {1}, Already Received: {2}, "
+                "Current: {3}."
+            ).format(
+                item_code,
+                transit_qty,
+                received_qty,
+                qty,
+            )
+        )
 
-                if request.get("rack"):
-                    new_row.rack = request.get("rack")
+    existing_row = next(
+        (row for row in stock_entry.items if row.item_code == item_code),
+        None
+    )
 
-                if request.get("bin"):
-                    new_row.bin = request.get("bin")
+    if existing_row:
+        existing_row.qty = total_qty
+        existing_row.transfer_qty = total_qty
 
+        if rack:
+            existing_row.rack = rack
+        if bin:
+            existing_row.bin = bin
+
+    else:
+        transit_entry = make_stock_in_entry(outward.name)
+        
+        transit_row = next(
+            row for row in transit_entry.items
+            if row.item_code == item_code
+        )
+
+        new_row = stock_entry.append("items", {})
+        new_row.update(transit_row.as_dict())
+
+        new_row.qty = qty
+        new_row.transfer_qty = qty
+        new_row.s_warehouse = outward.to_warehouse
+        new_row.t_warehouse = bay_warehouse
+        new_row.pick_list_item = None
+
+        if rack:
+            new_row.rack = rack
+        if bin:
+            new_row.bin = bin
+
+    if stock_entry.is_new():
         stock_entry.insert(ignore_permissions=True)
-        stock_entry.submit()
+    else:
+        stock_entry.save(ignore_permissions=True)
 
-        response = {
+    return {
+        "stock_entry": stock_entry.name,
+        "material_request": outward.material_request,
+        "from_warehouse": outward.to_warehouse,
+        "to_warehouse": bay_warehouse,
+        "status": "Draft",
+    }
+
+
+@frappe.whitelist()
+def complete_end_transit_stock_entry(data=None):
+    """
+    Validate and submit the draft End Transit Stock Entry.
+    """
+
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    data = data or frappe.form_dict
+
+    stock_entry_name = data.get("stock_entry")
+    stock_entry = frappe.get_doc("Stock Entry", stock_entry_name)
+
+    if stock_entry.docstatus == 1:
+        return {
             "stock_entry": stock_entry.name,
-            "material_request": outward.material_request,
-            "from_warehouse": outward.to_warehouse,
-            "to_warehouse": bay_warehouse,
+            "status": "Submitted",
         }
 
-    return response
+    transit_stock_entry = frappe.db.get_value(
+        "Stock Entry",
+        {
+            "material_request": stock_entry.material_request,
+            "add_to_transit": 1,
+            "docstatus": 1,
+        },
+        "name",
+        order_by="modified desc",
+    )
+
+    transit_stock_entry = frappe.get_doc("Stock Entry", transit_stock_entry)
+
+    transit_qty = {}
+    received_qty = {}
+
+    for row in transit_stock_entry.items:
+        transit_qty[row.item_code] = (
+            transit_qty.get(row.item_code, 0) + flt(row.qty)
+        )
+
+    for row in stock_entry.items:
+        received_qty[row.item_code] = (
+            received_qty.get(row.item_code, 0) + flt(row.qty)
+        )
+
+    for item_code, required_qty in transit_qty.items():
+        received = received_qty.get(item_code, 0)
+
+        if received != required_qty:
+            frappe.throw(
+                _(
+                    "Received quantity for Item {0} does not "
+                    "match Transit quantity. Required: {1}, Received: {2}."
+                ).format(item_code, required_qty,received)
+            )
+
+    stock_entry.submit()
+
+    return {
+        "stock_entry": stock_entry.name,
+        "status": "Submitted",
+    }
 
 
 @frappe.whitelist()
