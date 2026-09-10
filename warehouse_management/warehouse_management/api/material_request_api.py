@@ -922,13 +922,20 @@ def get_transit_stock_entry_items(stock_entry):
                 if item.ste_detail == row.name
             )
 
+        if received_qty == 0:
+            status = "Pending"
+        elif received_qty < flt(row.qty):
+            status = "Partial"
+        else:
+            status = "Created"
+
         items.append({
             "item_code": row.item_code,
             "item_name": row.item_name,
             "uom": row.uom,
             "transit_qty": row.qty,
             "received_qty": received_qty,
-            "status": "Created" if received_qty else "Pending",
+            "status": status,
         })
 
     return {
