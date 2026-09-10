@@ -1060,42 +1060,41 @@ def get_driver_packing_lists(source_warehouse):
             "docstatus": 1,
             "source_warehouse": source_warehouse,
         },
-        fields=["name"],
+        fields=["name", "pick_list"],
         order_by="modified desc",
     )
 
     if not packing_lists:
         return {"data": []}
 
-    pick_list_names = {
+    pick_list_names = [
         row.pick_list
         for row in packing_lists
         if row.pick_list
-    }
+    ]
 
     if not pick_list_names:
-        return {"data": packing_lists}
+        return {
+            "data": [
+                {"name": row.name}
+                for row in packing_lists
+            ]
+        }
 
-    # Find Pick Lists that already have a submitted Add-to-Transit Stock Entry.
-    transit_stock_entries = frappe.get_all(
+    transit_pick_lists = frappe.get_all(
         "Stock Entry",
         filters={
-            "pick_list": ["in", list(pick_list_names)],
+            "pick_list": ["in", pick_list_names],
             "add_to_transit": 1,
             "docstatus": 1,
         },
-        fields=["pick_list"],
+        pluck="pick_list",
     )
 
-    transit_pick_lists = {
-        row.pick_list
-        for row in transit_stock_entries
-        if row.pick_list
-    }
+    transit_pick_lists = set(transit_pick_lists)
 
-    # Exclude Packing Lists whose Pick List is already moved to transit.
     result = [
-        row
+        {"name": row.name}
         for row in packing_lists
         if row.pick_list not in transit_pick_lists
     ]
