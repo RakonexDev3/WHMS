@@ -925,6 +925,7 @@ def get_transit_stock_entry_items(stock_entry):
         items.append({
             "item_code": row.item_code,
             "item_name": row.item_name,
+            "uom": row.uom,
             "transit_qty": row.qty,
             "received_qty": received_qty,
             "status": "Created" if received_qty else "Pending",
