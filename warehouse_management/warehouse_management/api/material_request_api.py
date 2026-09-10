@@ -890,6 +890,55 @@ def get_transit_stock_entries(destination_warehouse):
 
 
 @frappe.whitelist()
+def get_transit_stock_entry_items(stock_entry):
+    transit = frappe.get_doc("Stock Entry", stock_entry)
+
+    end_transit = frappe.db.get_value(
+        "Stock Entry",
+        {
+            "outgoing_stock_entry": transit.name,
+            "add_to_transit": 0,
+            "docstatus": ["<", 2],
+        },
+        "name",
+        order_by="modified desc",
+    )
+
+    end_transit_doc = (
+        frappe.get_doc("Stock Entry", end_transit)
+        if end_transit
+        else None
+    )
+
+    items = []
+
+    for row in transit.items:
+        received_qty = 0
+
+        if end_transit_doc:
+            received_qty = sum(
+                flt(item.qty)
+                for item in end_transit_doc.items
+                if item.ste_detail == row.name
+            )
+
+        items.append({
+            "item_code": row.item_code,
+            "item_name": row.item_name,
+            "transit_qty": row.qty,
+            "received_qty": received_qty,
+            "status": "Created" if received_qty else "Pending",
+        })
+
+    return {
+        "material_request": transit.material_request,
+        "stock_entry": transit.name,
+        "end_transit_stock_entry": end_transit,
+        "items": items,
+    }
+
+
+@frappe.whitelist()
 def get_pick_lists():
     """Return open Pick Lists for the logged-in Picker's active warehouse."""
 
