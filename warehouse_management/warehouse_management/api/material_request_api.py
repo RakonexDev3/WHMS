@@ -401,6 +401,11 @@ def create_packing_box(data=None):
     items = data.get("items") or []
     box_id = data.get("box_id")
 
+    if frappe.db.exists("Box", {"box_id": box_id}):
+        frappe.throw(
+            _("Box label {0} already exists. Please use a different label.").format(box_id)
+        )
+
     pick_list = frappe.get_doc("Pick List", pick_list_id)
 
     outward_warehouse = frappe.db.get_value(
@@ -444,6 +449,8 @@ def create_packing_box(data=None):
     # Create Box
     # ---------------------------------------------------------
     box = frappe.new_doc("Box")
+    box.set("items", [])
+
     box.box_id = box_id
     box.packing_list = packing_list.name
 

@@ -7,6 +7,36 @@ from frappe.utils import flt
 
 
 class BinAssignment(Document):
+
+	def validate(self):
+		"""Validate that a placing assignment does not mix different items in a bin."""
+		if not self.bin:
+			return
+
+		storage_bin = frappe.get_doc("Storage Bin", self.bin)
+
+		if self.assignment_type == "Placing":
+			if storage_bin.status == "Empty":
+				return
+
+			if storage_bin.assigned_item != self.item:
+				frappe.throw(
+					f"Storage Bin {self.bin} is already assigned to "
+					f"{storage_bin.assigned_item}, cannot assign {self.item}."
+				)
+		
+		elif self.assignment_type == "Picking":
+			if storage_bin.status == "Empty":
+				frappe.throw(
+					f"Storage Bin {self.bin} is empty and cannot be picked."
+				)
+
+			if storage_bin.assigned_item != self.item:
+				frappe.throw(
+					f"Storage Bin {self.bin} contains "
+					f"{storage_bin.assigned_item}, cannot pick {self.item}."
+				)
+	
 	def after_insert(self):
 		"""Set Storage Bin status to Occupied when Bin Assignment is created"""
 		if not self.bin:
@@ -26,13 +56,11 @@ class BinAssignment(Document):
 				storage_bin.assigned_item = None
 				storage_bin.uom = None
 				storage_bin.assigned_on = None
-
+				storage_bin.expiry_date = None
 			else:
 				storage_bin.status = "Occupied"
-				storage_bin.bin_assignment_record = self.name
 
 		else:
-
 			storage_bin.quantity = (
 				flt(storage_bin.quantity) + flt(self.quantity)
 			)
@@ -58,16 +86,43 @@ class BinAssignment(Document):
 			0,
 		)
 
-		if storage_bin.quantity > 0:
-			storage_bin.status = "Occupied"
-
-		else:
+		if storage_bin.quantity <= 0:
+			storage_bin.quantity = 0
 			storage_bin.status = "Empty"
 			storage_bin.bin_assignment_record = None
 			storage_bin.assigned_item = None
 			storage_bin.uom = None
 			storage_bin.assigned_on = None
 			storage_bin.expiry_date = None
+
+		else:
+			storage_bin.status = "Occupied"
+
+			remaining_assignment = frappe.get_all(
+				"Bin Assignment",
+				filters={
+					"bin": self.bin,
+					"assignment_type": "Placing",
+				},
+				fields=[
+					"name",
+					"item",
+					"uom",
+					"doa",
+					"expiry_date",
+				],
+				order_by="creation desc",
+				limit=1,
+			)
+
+			if remaining_assignment:
+				assignment = remaining_assignment[0]
+
+				storage_bin.bin_assignment_record = assignment.name
+				storage_bin.assigned_item = assignment.item
+				storage_bin.uom = assignment.uom
+				storage_bin.assigned_on = assignment.doa
+				storage_bin.expiry_date = assignment.expiry_date
 
 		storage_bin.save(ignore_permissions=True)
 
