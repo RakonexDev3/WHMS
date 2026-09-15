@@ -62,11 +62,18 @@ def get_material_requests(source_warehouse):
 
 
 @frappe.whitelist()
-def get_material_request_stock(mr_id):
+def get_material_request_stock(mr_id, brand=None):
     mr = frappe.get_doc("Material Request", mr_id)
 
     warehouse = mr.set_from_warehouse
-    item_codes = [row.item_code for row in mr.items]
+
+    # Filter MR items by brand
+    filtered_items = [
+        row for row in mr.items
+        if not brand or row.brand == brand
+    ]
+
+    item_codes = [row.item_code for row in filtered_items]
 
     stock_by_item = {}
 
@@ -98,7 +105,7 @@ def get_material_request_stock(mr_id):
     pick_list = pick_lists[0] if pick_lists else None
     picked_by_item = {}
 
-    if pick_list:
+    if pick_list and item_codes:
         locations = frappe.get_all(
             "Pick List Item",
             filters={
@@ -121,12 +128,13 @@ def get_material_request_stock(mr_id):
             {
                 "item_code": row.item_code,
                 "item_name": row.item_name,
+                "brand": row.brand,
                 "req_qty": row.qty,
                 "wh_stock_bal": stock_by_item.get(row.item_code, 0),
                 "picked_qty": picked_by_item.get(row.item_code, 0),
                 "uom": row.uom,
             }
-            for row in mr.items
+            for row in filtered_items
         ],
     }
 
