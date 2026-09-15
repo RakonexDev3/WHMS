@@ -1075,7 +1075,7 @@ def get_driver_packing_lists(source_warehouse):
             "docstatus": 1,
             "source_warehouse": source_warehouse,
         },
-        fields=["name", "pick_list"],
+        fields=["name", "pick_list", "material_request"],
         order_by="modified desc",
     )
 
@@ -1091,7 +1091,10 @@ def get_driver_packing_lists(source_warehouse):
     if not pick_list_names:
         return {
             "data": [
-                {"name": row.name}
+                {
+                    "name": row.name,
+                    "mr_id": row.material_request,
+                }
                 for row in packing_lists
             ]
         }
@@ -1109,9 +1112,40 @@ def get_driver_packing_lists(source_warehouse):
     transit_pick_lists = set(transit_pick_lists)
 
     result = [
-        {"name": row.name}
+        {
+            "name": row.name,
+            "mr_id": row.material_request,
+        }
         for row in packing_lists
         if row.pick_list not in transit_pick_lists
     ]
 
     return {"data": result}
+
+
+@frappe.whitelist()
+def get_packing_list_details(packing_list):
+    """Return Packing List details with total box count."""
+
+    packing_list_doc = frappe.get_doc("Packing List", packing_list)
+
+    boxes = frappe.get_all(
+        "Box",
+        filters={
+            "packing_list": packing_list_doc.name,
+        },
+        fields=["name", "box_id", "total_items"],
+        order_by="creation asc",
+    )
+
+    return {
+        "packing_list": packing_list_doc.name,
+        "total_boxes": len(boxes),
+        "boxes": [
+            {
+                "box_label": box.box_id,
+                "total_items": flt(box.total_items),
+            }
+            for box in boxes
+        ],
+    }
