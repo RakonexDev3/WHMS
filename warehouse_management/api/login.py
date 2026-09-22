@@ -11,6 +11,18 @@ def mobile_login(username, password):
 
         user = frappe.get_doc("User", username)
 
+        employee = frappe.db.get_value(
+            "Employee",
+            {"user_id": username},
+            ["name", "active_warehouse"],
+            as_dict=True,
+        )
+        if not employee:
+            return {
+                "success": False,
+                "message": "No employee record found for user",
+            }
+
         # Generate API key if the user doesn't already have one
         if not user.api_key:
             user.api_key = frappe.generate_hash(length=15)
@@ -56,6 +68,8 @@ def mobile_login(username, password):
                 "user_id": username,
                 "user_name": user.full_name,
                 "status": "active" if user.enabled else "inactive",
+                "employee_id": employee.name,
+                "active_warehouse": employee.active_warehouse,
                 "roles": custom_roles,
             },
             "user_creds": {
