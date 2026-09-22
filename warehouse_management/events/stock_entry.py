@@ -23,8 +23,6 @@ def update_material_request_workflow(doc, method=None):
             update_modified=False,
         )
 
-        cleanup_packing_list(doc.material_request)
-
 
 def create_bin_assignments_on_stock_entry_submit(doc, method):
     """Create Bin Assignment records for Stock Entry items having Rack & Bin."""
