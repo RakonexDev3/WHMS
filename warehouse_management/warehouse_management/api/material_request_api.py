@@ -141,7 +141,7 @@ def get_material_request_stock(mr_id, brand=None):
 
 @frappe.whitelist()
 def get_item_storage_bins(item_code, warehouse):
-    item_name = frappe.db.get_value("Item", item_code, "item_name")
+    item = frappe.get_doc("Item", item_code)
 
     bins = frappe.get_all(
         "Storage Bin",
@@ -161,7 +161,8 @@ def get_item_storage_bins(item_code, warehouse):
 
     return {
         "item_code": item_code,
-        "item_name": item_name,
+        "item_name": item.item_name,
+        "barcode": item.barcodes[0].barcode if item.barcodes else None,
         "warehouse": warehouse,
         "storage_bins": [
             {
