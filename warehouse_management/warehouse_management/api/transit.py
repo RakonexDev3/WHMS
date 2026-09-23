@@ -1,0 +1,170 @@
+import json
+
+import frappe
+from frappe import _
+from frappe.utils import flt
+
+
+@frappe.whitelist()
+def get_driver_packing_lists(source_warehouse):
+    """Return submitted Packing Lists available for driver acceptance."""
+
+    packing_lists = frappe.get_all(
+        "Packing List",
+        filters={
+            "docstatus": 1,
+            "source_warehouse": source_warehouse,
+        },
+        fields=["name", "pick_list", "material_request"],
+        order_by="modified desc",
+    )
+
+    if not packing_lists:
+        return {"data": []}
+
+    pick_list_names = [
+        row.pick_list
+        for row in packing_lists
+        if row.pick_list
+    ]
+
+    if not pick_list_names:
+        return {
+            "data": [
+                {
+                    "name": row.name,
+                    "mr_id": row.material_request,
+                }
+                for row in packing_lists
+            ]
+        }
+
+    transit_pick_lists = frappe.get_all(
+        "Stock Entry",
+        filters={
+            "pick_list": ["in", pick_list_names],
+            "add_to_transit": 1,
+            "docstatus": 1,
+        },
+        pluck="pick_list",
+    )
+
+    transit_pick_lists = set(transit_pick_lists)
+
+    result = [
+        {
+            "name": row.name,
+            "mr_id": row.material_request,
+        }
+        for row in packing_lists
+        if row.pick_list not in transit_pick_lists
+    ]
+
+    return {"data": result}
+
+
+@frappe.whitelist()
+def get_packing_list_details(packing_list):
+    """Return Packing List details with total box count."""
+
+    packing_list_doc = frappe.get_doc("Packing List", packing_list)
+
+    boxes = frappe.get_all(
+        "Box",
+        filters={
+            "packing_list": packing_list_doc.name,
+        },
+        fields=["name", "box_id", "total_items"],
+        order_by="creation asc",
+    )
+
+    return {
+        "packing_list": packing_list_doc.name,
+        "total_boxes": len(boxes),
+        "boxes": [
+            {
+                "box_label": box.box_id,
+                "total_items": flt(box.total_items),
+            }
+            for box in boxes
+        ],
+    }
+
+
+@frappe.whitelist()
+def create_stock_entry(data=None):
+    """
+    Create and submit Add-to-Transit Stock Entry.
+    """
+
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    data = data or frappe.form_dict
+
+    transit_wh = data.get("transit_wh")
+    pl_id = data.get("pl_id")
+
+    pick_list = frappe.get_doc("Pick List", pl_id)
+
+    packing_list = frappe.get_doc(
+        "Packing List",
+        {
+            "pick_list": pick_list.name,
+            "docstatus": 1,
+        },
+    )
+
+    stock_entry = frappe.new_doc("Stock Entry")
+
+    stock_entry.update({
+        "stock_entry_type": "Material Transfer",
+        "purpose": "Material Transfer",
+        "company": pick_list.company,
+        "from_warehouse": packing_list.outward_warehouse,
+        "to_warehouse": transit_wh,
+        "destination_warehouse": pick_list.destination_warehouse,
+        "pick_list": pick_list.name,
+        "material_request": pick_list.material_request,
+        "add_to_transit": 1,
+    })
+
+    for row in pick_list.locations:
+        qty = flt(row.qty)
+
+        if qty <= 0:
+            continue
+
+        stock_entry.append(
+            "items",
+            {
+                "item_code": row.item_code,
+                "item_name": row.item_name,
+                "description": row.description,
+                "qty": qty,
+                "transfer_qty": qty,
+                "uom": row.uom,
+                "stock_uom": row.stock_uom,
+                "conversion_factor": row.conversion_factor or 1,
+                "s_warehouse": packing_list.outward_warehouse,
+                "t_warehouse": transit_wh,
+                "material_request_item": row.material_request_item,
+            },
+        )
+
+    if not stock_entry.items:
+        frappe.throw(
+            _("No valid items found in Pick List {0}.")
+            .format(pick_list.name)
+        )
+
+    stock_entry.insert(ignore_permissions=True)
+    stock_entry.submit()
+
+    return {
+        "stock_entry": stock_entry.name,
+        "material_request": pick_list.material_request,
+        "from_warehouse": packing_list.outward_warehouse,
+        "to_warehouse": transit_wh,
+        "destination_warehouse": pick_list.destination_warehouse,
+    }
