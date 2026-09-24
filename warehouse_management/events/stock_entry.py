@@ -15,14 +15,62 @@ def update_material_request_workflow(doc, method=None):
         )
 
     elif doc.outgoing_stock_entry:
-        frappe.db.set_value(
-            "Material Request",
-            doc.material_request,
-            "workflow_state",
-            "Completed",
-            update_modified=False,
+        transferred = frappe.db.get_value(
+            "Stock Entry",
+            doc.outgoing_stock_entry,
+            "per_transferred",
         )
 
+        if transferred == 100:
+            frappe.db.set_value(
+                "Material Request",
+                doc.material_request,
+                "workflow_state",
+                "Completed",
+                update_modified=False,
+            )
+
+
+def revert_material_request_workflow(doc, method=None):
+    """Revert Material Request workflow state when a Stock Entry is cancelled."""
+
+    if not doc.material_request:
+        return
+
+    material_request = doc.material_request
+
+    current_state = frappe.db.get_value(
+        "Material Request",
+        material_request,
+        "workflow_state",
+    )
+
+    if doc.pick_list and doc.add_to_transit:
+        if current_state == "In Transit":
+            frappe.db.set_value(
+                "Material Request",
+                material_request,
+                "workflow_state",
+                "Picked",
+                update_modified=False,
+            )
+
+    elif doc.outgoing_stock_entry:
+        transferred = frappe.db.get_value(
+            "Stock Entry",
+            doc.outgoing_stock_entry,
+            "per_transferred",
+        )
+
+        if transferred < 100 and current_state == "Completed":
+            frappe.db.set_value(
+                "Material Request",
+                material_request,
+                "workflow_state",
+                "In Transit",
+                update_modified=False,
+            )
+    
 
 def create_bin_assignments_on_stock_entry_submit(doc, method):
     """Create Bin Assignment records for Stock Entry items having Rack & Bin."""
@@ -73,41 +121,6 @@ def delete_bin_assignments_on_stock_entry_cancel(doc, method):
             name,
             ignore_permissions=True
         )
-
-
-def revert_material_request_workflow(doc, method=None):
-    """Revert Material Request workflow state when a Stock Entry is cancelled."""
-
-    if not doc.material_request:
-        return
-
-    material_request = doc.material_request
-
-    current_state = frappe.db.get_value(
-        "Material Request",
-        material_request,
-        "workflow_state",
-    )
-
-    if doc.pick_list and doc.add_to_transit:
-        if current_state == "In Transit":
-            frappe.db.set_value(
-                "Material Request",
-                material_request,
-                "workflow_state",
-                "Picked",
-                update_modified=False,
-            )
-
-    elif doc.outgoing_stock_entry:
-        if current_state == "Completed":
-            frappe.db.set_value(
-                "Material Request",
-                material_request,
-                "workflow_state",
-                "In Transit",
-                update_modified=False,
-            )
 
 
 def cleanup_packing_list(material_request):

@@ -8,7 +8,7 @@ from erpnext.stock.doctype.stock_entry.stock_entry import make_stock_in_entry
 
 
 @frappe.whitelist()
-def get_transit_packing_list(destination_warehouse):
+def get_transit_packing_lists(destination_warehouse):
     stock_entries = frappe.get_all(
         "Stock Entry",
         filters={
@@ -30,7 +30,7 @@ def get_transit_packing_list(destination_warehouse):
     return [
         {
             "material_request": entry.material_request,
-            "stock_entry": entry.name,
+            "transit_stock_entry": entry.name,
             "from_warehouse": entry.from_warehouse,
             "transit_warehouse": entry.to_warehouse,
             "status": (
@@ -44,8 +44,8 @@ def get_transit_packing_list(destination_warehouse):
 
 
 @frappe.whitelist()
-def get_transit_packing_list_details(stock_entry):
-    transit = frappe.get_doc("Stock Entry", stock_entry)
+def get_transit_packing_list_details(transit_stock_entry):
+    transit = frappe.get_doc("Stock Entry", transit_stock_entry)
 
     packing_list = frappe.db.get_value(
         "Packing List",
@@ -100,7 +100,7 @@ def create_end_transit_stock_entry(data=None):
 
     data = data or frappe.form_dict
 
-    outward_se = data.get("stock_entry")
+    transit_se = data.get("transit_stock_entry")
     destination_wh = data.get("destination_wh")
     select_all = data.get("select_all", 0)
     action = "full_receive" if select_all else "partial_receive"
@@ -109,7 +109,7 @@ def create_end_transit_stock_entry(data=None):
     if isinstance(box_ids, str):
         box_ids = json.loads(box_ids)
 
-    outward = frappe.get_doc("Stock Entry", outward_se)
+    transit = frappe.get_doc("Stock Entry", transit_se)
 
     # ---------------------------------------------------------
     # Find Bay Warehouse
@@ -130,13 +130,13 @@ def create_end_transit_stock_entry(data=None):
             _("Bay warehouse not found for {0}.").format(destination_wh)
         )
 
-    stock_entry = frappe.get_doc(make_stock_in_entry(outward.name))
-    stock_entry.from_warehouse = outward.to_warehouse
+    stock_entry = frappe.get_doc(make_stock_in_entry(transit.name))
+    stock_entry.from_warehouse = transit.to_warehouse
     stock_entry.to_warehouse = bay_warehouse
     stock_entry.destination_warehouse = None
     stock_entry.add_to_transit = 0
-    stock_entry.pick_list = outward.pick_list
-    stock_entry.material_request = outward.material_request
+    stock_entry.pick_list = transit.pick_list
+    stock_entry.material_request = transit.material_request
 
     # ---------------------------------------------------------
     # FULL RECEIVE
@@ -151,7 +151,7 @@ def create_end_transit_stock_entry(data=None):
             {
                 "parent": frappe.db.get_value(
                     "Packing List",
-                    {"pick_list": outward.pick_list},
+                    {"pick_list": transit.pick_list},
                     "name",
                 )
             },
@@ -160,9 +160,9 @@ def create_end_transit_stock_entry(data=None):
         )
 
         return {
-            "stock_entry": stock_entry.name,
-            "material_request": outward.material_request,
-            "from_warehouse": outward.to_warehouse,
+            "end_transit_stock_entry": stock_entry.name,
+            "material_request": transit.material_request,
+            "from_warehouse": transit.to_warehouse,
             "to_warehouse": bay_warehouse,
         }
 
@@ -175,14 +175,14 @@ def create_end_transit_stock_entry(data=None):
 
     packing_list = frappe.db.get_value(
         "Packing List",
-        {"pick_list": outward.pick_list},
+        {"pick_list": transit.pick_list},
         "name",
     )
 
     if not packing_list:
         frappe.throw(
             _("Packing List not found for Pick List {0}.").format(
-                outward.pick_list
+                transit.pick_list
             )
         )
 
@@ -255,8 +255,8 @@ def create_end_transit_stock_entry(data=None):
         )
 
     return {
-        "stock_entry": stock_entry.name,
-        "material_request": outward.material_request,
-        "from_warehouse": outward.to_warehouse,
+        "end_transit_stock_entry": stock_entry.name,
+        "material_request": transit.material_request,
+        "from_warehouse": transit.to_warehouse,
         "to_warehouse": bay_warehouse,
     }
