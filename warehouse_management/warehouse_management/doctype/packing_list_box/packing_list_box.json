@@ -7,8 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "box_id",
+  "total_item",
   "column_break_olmw",
-  "total_item"
+  "is_received"
  ],
  "fields": [
   {
@@ -29,13 +30,21 @@
    "in_list_view": 1,
    "label": "Total Items",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_received",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Received",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-14 15:17:31.276357",
+ "modified": "2026-09-24 12:40:47.723539",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List Box",
