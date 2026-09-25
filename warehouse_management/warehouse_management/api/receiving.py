@@ -72,16 +72,17 @@ def get_transit_packing_list_details(transit_stock_entry):
     packing_list = frappe.db.get_value(
         "Packing List",
         {"pick_list": transit.pick_list},
-        "name",
+        ["name", "total_boxes"],
+        as_dict=True
     )
 
     packing_list_items = []
 
-    if packing_list:
+    if packing_list.name:
         packing_list_items = frappe.get_all(
             "Packing List Box",
             filters={
-                "parent": packing_list,
+                "parent": packing_list.name,
                 "parenttype": "Packing List",
                 "parentfield": "items",
             },
@@ -102,7 +103,7 @@ def get_transit_packing_list_details(transit_stock_entry):
     return {
         "material_request": transit.material_request,
         "driver": driver,
-        "packing_list": packing_list,
+        "packing_list": packing_list.name,
         "total_box_count": packing_list.total_boxes if packing_list else 0,
         "items": packing_list_items,
     }
