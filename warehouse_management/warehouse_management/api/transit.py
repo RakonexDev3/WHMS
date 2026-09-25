@@ -53,7 +53,8 @@ def get_driver_packing_lists(source_warehouse):
 
     result = [
         {
-            "name": row.name,
+            "packing_list": row.name,
+            "pick_list": row.pick_list,
             "mr_id": row.material_request,
         }
         for row in packing_lists
@@ -103,9 +104,9 @@ def create_stock_entry(data=None):
     data = data or frappe.form_dict
 
     transit_wh = data.get("transit_wh")
-    pl_id = data.get("pl_id")
+    pick_list_id = data.get("pick_list")
 
-    pick_list = frappe.get_doc("Pick List", pl_id)
+    pick_list = frappe.get_doc("Pick List", pick_list_id)
 
     packing_list = frappe.get_doc(
         "Packing List",
