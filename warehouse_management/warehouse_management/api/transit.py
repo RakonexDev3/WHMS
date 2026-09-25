@@ -54,7 +54,6 @@ def get_driver_packing_lists(source_warehouse):
     result = [
         {
             "packing_list": row.name,
-            "pick_list": row.pick_list,
             "mr_id": row.material_request,
         }
         for row in packing_lists
@@ -81,6 +80,7 @@ def get_packing_list_details(packing_list):
 
     return {
         "packing_list": packing_list_doc.name,
+        "pick_list": packing_list_doc.pick_list,
         "total_boxes": len(boxes),
         "boxes": [
             {
