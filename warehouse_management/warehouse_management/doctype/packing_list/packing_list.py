@@ -14,6 +14,7 @@ class PackingList(Document):
 
 	def on_submit(self):
 		self.update_material_request_status()
+		self.update_box_counts()
 
 	def validate_packing_quantities(self, pick_list_doc):
 		"""
@@ -76,5 +77,16 @@ class PackingList(Document):
 			self.material_request,
 			"workflow_state",
 			"Packed",
+			update_modified=False,
+		)
+
+	def update_box_counts(self):
+		self.total_boxes = len(self.items)
+
+		frappe.db.set_value(
+			"Packing List",
+			self.name,
+			"total_boxes",
+			self.total_boxes,
 			update_modified=False,
 		)

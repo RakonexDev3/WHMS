@@ -15,29 +15,11 @@ def get_driver_packing_lists(source_warehouse):
             "docstatus": 1,
             "source_warehouse": source_warehouse,
         },
-        fields=["name", "pick_list", "material_request"],
+        fields=["name", "pick_list", "material_request", "total_boxes"],
         order_by="modified desc",
     )
 
-    if not packing_lists:
-        return {"data": []}
-
-    pick_list_names = [
-        row.pick_list
-        for row in packing_lists
-        if row.pick_list
-    ]
-
-    if not pick_list_names:
-        return {
-            "data": [
-                {
-                    "name": row.name,
-                    "mr_id": row.material_request,
-                }
-                for row in packing_lists
-            ]
-        }
+    pick_list_names = [row.pick_list for row in packing_lists if row.pick_list]
 
     transit_pick_lists = frappe.get_all(
         "Stock Entry",
@@ -55,6 +37,7 @@ def get_driver_packing_lists(source_warehouse):
         {
             "packing_list": row.name,
             "mr_id": row.material_request,
+            "total_boxes": row.total_boxes,
         }
         for row in packing_lists
         if row.pick_list not in transit_pick_lists
@@ -81,7 +64,7 @@ def get_packing_list_details(packing_list):
     return {
         "packing_list": packing_list_doc.name,
         "pick_list": packing_list_doc.pick_list,
-        "total_boxes": len(boxes),
+        "total_boxes": packing_list_doc.total_boxes,
         "boxes": [
             {
                 "box_label": box.box_id,

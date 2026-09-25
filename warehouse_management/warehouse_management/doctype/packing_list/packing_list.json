@@ -9,15 +9,18 @@
   "section_break_xqld",
   "naming_series",
   "pick_list",
-  "material_request",
   "source_warehouse",
   "destination_warehouse",
   "amended_from",
   "column_break_xyqm",
-  "company",
+  "material_request",
   "outward_warehouse",
   "section_break_gsxy",
-  "items"
+  "items",
+  "section_break_hprj",
+  "total_boxes",
+  "column_break_vdnc",
+  "received_boxes"
  ],
  "fields": [
   {
@@ -60,14 +63,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Company",
-   "options": "Company",
-   "reqd": 1
-  },
-  {
    "fieldname": "section_break_gsxy",
    "fieldtype": "Section Break"
   },
@@ -101,13 +96,35 @@
    "label": "Destination Warehouse",
    "options": "Warehouse",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_hprj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_boxes",
+   "fieldtype": "Int",
+   "label": "Total Boxes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vdnc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "received_boxes",
+   "fieldtype": "Int",
+   "label": "Received Boxes",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-15 17:51:36.970996",
+ "modified": "2026-09-25 15:28:07.736331",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List",
