@@ -189,9 +189,9 @@ def notify_source_warehouse_manager_partial_picking(doc):
             "doctype": "Notification Log",
             "subject": f"Material Request {doc.name} Partially Picked",
             "email_content": (
-                f"Material Request {doc.name} has been partially picked "
+                f"Items from {doc.name} has been partially picked "
                 f"from warehouse {source_warehouse}. "
-                "Please take note of the picking status."
+                "Please take note of the updated picking status."
             ),
             "for_user": user,
             "type": "Alert",
