@@ -342,6 +342,16 @@ def create_pick_list_from_bins(data=None):
                 _("Storage Bin {0} does not exist.").format(bin_name)
             )
 
+        if storage_bin.warehouse != mr.set_from_warehouse:
+            frappe.throw(
+                _(
+                    "Storage Bin {0} is not assigned to source warehouse {1}."
+                ).format(
+                    bin_name,
+                    mr.set_from_warehouse,
+                )
+            )
+
         item_row = bin_item_map.get((bin_name, item_code))
 
         if not item_row:

@@ -2,6 +2,9 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from warehouse_management.utils import get_main_warehouse
+from warehouse_management.events.material_request import get_warehouse_manager_users
+
 
 def validate_material_requests(doc, method=None):
     """Only Approved Material Requests can be linked to a Pick List."""
@@ -34,6 +37,7 @@ def update_material_request_picking_status(material_request):
     """Update MR workflow state based on cumulative submitted picking."""
 
     mr = frappe.get_doc("Material Request", material_request)
+    previous_state = mr.workflow_state
 
     required = {}
     picked = {}
@@ -78,6 +82,13 @@ def update_material_request_picking_status(material_request):
         workflow_state,
         update_modified=False,
     )
+
+    # Notify source warehouse manager when the MR becomes Partially Picked.
+    if (
+        workflow_state == "Partially Picked"
+        and previous_state != "Partially Picked"
+    ):
+        notify_source_warehouse_manager_partial_picking(mr)
 
 
 def update_material_requests_as_picked(doc, method=None):
@@ -153,3 +164,37 @@ def delete_bin_assignments_on_pick_list_cancel(doc, method=None):
             bin_assignment,
             ignore_permissions=True,
         )
+
+
+def notify_source_warehouse_manager_partial_picking(doc):
+    """Notify source Warehouse Managers when an MR is partially picked."""
+
+    if doc.material_request_type != "Material Transfer":
+        return
+
+    source_warehouse = doc.set_from_warehouse
+
+    if not source_warehouse:
+        return
+
+    manager_warehouse = get_main_warehouse(source_warehouse)
+
+    if not manager_warehouse:
+        return
+
+    users = get_warehouse_manager_users({manager_warehouse})
+
+    for user in users:
+        frappe.get_doc({
+            "doctype": "Notification Log",
+            "subject": f"Material Request {doc.name} Partially Picked",
+            "email_content": (
+                f"Material Request {doc.name} has been partially picked "
+                f"from warehouse {source_warehouse}. "
+                "Please take note of the picking status."
+            ),
+            "for_user": user,
+            "type": "Alert",
+            "document_type": "Material Request",
+            "document_name": doc.name,
+        }).insert(ignore_permissions=True)
