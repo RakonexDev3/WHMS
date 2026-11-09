@@ -12,7 +12,7 @@ def get_material_requests(source_warehouse):
     material_requests = frappe.get_all(
         "Material Request",
         filters={
-            "workflow_state": ["in", ["Approved", "Partially Picked"]],
+            "workflow_state": "Approved",
             "material_request_type": "Material Transfer",
             "set_from_warehouse": source_warehouse,
         },

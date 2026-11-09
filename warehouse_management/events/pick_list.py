@@ -4,7 +4,7 @@ from frappe.utils import flt
 
 
 def validate_material_requests(doc, method=None):
-    """Allow Approved and Partially Picked Material Requests."""
+    """Only Approved Material Requests can be linked to a Pick List."""
 
     material_requests = {
         row.material_request
@@ -19,17 +19,14 @@ def validate_material_requests(doc, method=None):
         "Material Request",
         filters={
             "name": ["in", list(material_requests)],
-            "workflow_state": [
-                "not in",
-                ["Approved", "Partially Picked"],
-            ],
+            "workflow_state": ["!=", "Approved"],
         },
         fields=["name", "workflow_state"],
     )
 
     if invalid_material_requests:
         frappe.throw(
-            _("Only Approved or Partially Picked Material Requests can be linked to a Pick List.")
+            _("Only Approved Material Requests can be linked to a Pick List.")
         )
 
 
@@ -58,9 +55,7 @@ def update_material_request_picking_status(material_request):
     if pick_lists:
         locations = frappe.get_all(
             "Pick List Item",
-            filters={
-                "parent": ["in", pick_lists],
-            },
+            filters={"parent": ["in", pick_lists]},
             fields=["item_code", "qty"],
         )
 
