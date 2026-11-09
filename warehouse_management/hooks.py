@@ -27,7 +27,7 @@ fixtures = [
 	{
 		"doctype": "Workflow State",
 		"filters": [
-			["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked", "Packed", "In Transit", "Completed"]]
+			["workflow_state_name", "in", ["Draft", "Submitted", "Pending", "Cancelled", "Picked", "Packed", "In Transit", "Completed", "Partially Picked"]]
 		]
 	},
 	{

@@ -70,5 +70,14 @@
   "name": "Packed",
   "style": "Warning",
   "workflow_state_name": "Packed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2026-11-09 12:09:45.139847",
+  "name": "Partially Picked",
+  "style": "Warning",
+  "workflow_state_name": "Partially Picked"
  }
 ]
