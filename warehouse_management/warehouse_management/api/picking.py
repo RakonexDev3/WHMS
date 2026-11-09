@@ -12,7 +12,7 @@ def get_material_requests(source_warehouse):
     material_requests = frappe.get_all(
         "Material Request",
         filters={
-            "workflow_state": "Approved",
+            "workflow_state": ["in", ["Approved", "Partially Picked"]],
             "material_request_type": "Material Transfer",
             "set_from_warehouse": source_warehouse,
         },
@@ -100,14 +100,20 @@ def get_material_request_stock(mr_id, brand=None):
         order_by="modified desc",
     )
 
-    pick_list = pick_lists[0] if pick_lists else None
+    pick_list_names = [row.name for row in pick_lists]
+
+    draft_pick_list = next(
+        (row for row in pick_lists if row.docstatus == 0),
+        None,
+    )
+
     picked_by_item = {}
 
-    if pick_list and item_codes:
+    if pick_list_names and item_codes:
         locations = frappe.get_all(
             "Pick List Item",
             filters={
-                "parent": pick_list.name,
+                "parent": ["in", pick_list_names],
                 "item_code": ["in", item_codes],
             },
             fields=["item_code", "qty"],
@@ -121,7 +127,7 @@ def get_material_request_stock(mr_id, brand=None):
     return {
         "mr_id": mr.name,
         "warehouse": warehouse,
-        "pick_list": pick_list.name if pick_list else None,
+        "pick_list": draft_pick_list.name if draft_pick_list else None,
         "items": [
             {
                 "item_code": row.item_code,
@@ -225,12 +231,30 @@ def create_pick_list_from_bins(data=None):
         )
         mr_items[row.item_code] = row
 
+    existing_pick_lists = frappe.get_all(
+        "Pick List",
+        filters={
+            "material_request": mr.name,
+            "docstatus": ["<", 2],
+        },
+        pluck="name",
+    )
+
     picked_qty = {}
 
-    for row in pick_list.locations:
-        picked_qty[row.item_code] = (
-            picked_qty.get(row.item_code, 0) + flt(row.qty)
+    if existing_pick_lists:
+        locations = frappe.get_all(
+            "Pick List Item",
+            filters={
+                "parent": ["in", existing_pick_lists],
+            },
+            fields=["item_code", "qty"],
         )
+
+        for row in locations:
+            picked_qty[row.item_code] = (
+                picked_qty.get(row.item_code, 0) + flt(row.qty)
+            )
 
     requested_bins = {}
     current_qty = {}
@@ -412,31 +436,14 @@ def create_pick_list_from_bins(data=None):
 @frappe.whitelist()
 def complete_picking(pick_list):
     pick_list = frappe.get_doc("Pick List", pick_list)
-    mr = frappe.get_doc("Material Request", pick_list.material_request)
 
-    required = {}
-    picked = {}
+    if not pick_list.locations:
+        frappe.throw(_("No items found in Pick List."))
 
-    for row in mr.items:
-        required[row.item_code] = (
-            required.get(row.item_code, 0) + flt(row.qty)
-        )
+    total_picked = sum(flt(row.qty) for row in pick_list.locations)
 
-    for row in pick_list.locations:
-        picked[row.item_code] = (
-            picked.get(row.item_code, 0) + flt(row.qty)
-        )
-
-    for item_code, required_qty in required.items():
-        picked_qty = picked.get(item_code, 0)
-
-        if picked_qty != required_qty:
-            frappe.throw(
-                _(
-                    "Picking is incomplete for Item {0}. "
-                    "Required: {1}, Picked: {2}."
-                ).format(item_code, required_qty, picked_qty)
-            )
+    if total_picked <= 0:
+        frappe.throw(_("Please pick at least one item."))
 
     pick_list.submit()
 
