@@ -29,6 +29,40 @@ def update_material_request_workflow(doc, method=None):
                 "Completed",
                 update_modified=False,
             )
+            # update_linked_packing_list_to_received(doc.material_request)
+
+def update_packing_list_to_received(doc, method=None):
+    """Update submitted Packing List to Received when linked MR is Completed."""
+
+    if not doc.material_request:
+        return
+
+    workflow_state = frappe.db.get_value(
+        "Material Request",
+        doc.material_request,
+        "workflow_state",
+    )
+
+    if workflow_state != "Completed":
+        return
+
+    packing_lists = frappe.get_all(
+        "Packing List",
+        filters={
+            "material_request": doc.material_request,
+            "docstatus": 1,
+        },
+        pluck="name",
+    )
+
+    for packing_list_name in packing_lists:
+        frappe.db.set_value(
+            "Packing List",
+            packing_list_name,
+            "stock_status",
+            "Received",
+            update_modified=False,
+        )
 
 
 def revert_material_request_workflow(doc, method=None):

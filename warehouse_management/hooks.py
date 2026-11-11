@@ -202,6 +202,8 @@ doc_events = {
 		"validate": "warehouse_management.events.material_request.validate_warehouse_manager",
 		"before_save": "warehouse_management.events.material_request.update_stock_available_at_source",
 		"on_update": "warehouse_management.events.material_request.notify_warehouse_manager",
+
+        
 	},
 	"Pick List": {
 		"validate": "warehouse_management.events.pick_list.validate_material_requests",
@@ -215,6 +217,8 @@ doc_events = {
 		"on_submit": [
 			"warehouse_management.events.stock_entry.update_material_request_workflow",
 			"warehouse_management.events.stock_entry.create_bin_assignments_on_stock_entry_submit",
+            "warehouse_management.events.stock_entry.update_packing_list_to_received",
+
 		],
 		"on_cancel": [
 			"warehouse_management.events.stock_entry.revert_material_request_workflow",
