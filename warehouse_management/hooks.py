@@ -202,6 +202,8 @@ doc_events = {
 		"validate": "warehouse_management.events.material_request.validate_warehouse_manager",
 		"before_save": "warehouse_management.events.material_request.update_stock_available_at_source",
 		"on_update": "warehouse_management.events.material_request.notify_warehouse_manager",
+
+        
 	},
 	"Pick List": {
 		"validate": "warehouse_management.events.pick_list.validate_material_requests",

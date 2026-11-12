@@ -12,6 +12,7 @@
   "source_warehouse",
   "destination_warehouse",
   "amended_from",
+  "stock_status",
   "column_break_xyqm",
   "material_request",
   "outward_warehouse",
@@ -118,13 +119,21 @@
    "fieldtype": "Int",
    "label": "Received Boxes",
    "read_only": 1
+  },
+  {
+   "default": "Packing",
+   "fieldname": "stock_status",
+   "fieldtype": "Select",
+   "label": "Stock Status",
+   "options": "\nPacking\nPacked\nReceived\nVerified",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-25 15:28:07.736331",
+ "modified": "2026-11-11 14:08:41.664268",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List",

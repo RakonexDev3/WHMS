@@ -14,6 +14,7 @@ class PackingList(Document):
 
 	def on_submit(self):
 		self.update_material_request_status()
+		self.db_set("stock_status", "Packed")
 		self.update_box_counts()
 
 	def validate_packing_quantities(self, pick_list_doc):
@@ -79,6 +80,7 @@ class PackingList(Document):
 			"Packed",
 			update_modified=False,
 		)
+	
 
 	def update_box_counts(self):
 		self.total_boxes = len(self.items)

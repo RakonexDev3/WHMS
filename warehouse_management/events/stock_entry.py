@@ -30,6 +30,17 @@ def update_material_request_workflow(doc, method=None):
                 update_modified=False,
             )
 
+            frappe.db.set_value(
+                "Packing List",
+                {
+                    "material_request": doc.material_request,
+                    "docstatus": 1,
+                },
+                "stock_status",
+                "Received",
+                update_modified=False,
+            )
+
 
 def revert_material_request_workflow(doc, method=None):
     """Revert Material Request workflow state when a Stock Entry is cancelled."""
