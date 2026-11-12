@@ -53,9 +53,9 @@ def get_verification_packing_lists(warehouse):
         result.append({
             "packing_list": row.name,
             "material_request": row.material_request,
-            "total_boxes": row.total_boxes,
-            "received_boxes": row.received_boxes,
-            "verified_boxes": row.verified_boxes,
+            "total_packed_boxes": row.total_boxes,
+            "total_received_boxes": row.received_boxes,
+            "total_verified_boxes": row.verified_boxes,
             "verification_status": (
                 "In Progress" if quality_check else "To Start"
             ),
@@ -100,14 +100,44 @@ def get_verification_packing_list_details(packing_list):
         "name",
     )
 
+    qc_map = {}
+
+    if quality_check_name and box_ids:
+        quality_items = frappe.get_all(
+            "Stock Quality Check Item",
+            filters={
+                "parent": quality_check_name,
+                "parenttype": "Stock Quality Check",
+                "parentfield": "items",
+                "box": ["in", box_ids],
+            },
+            fields=["box", "qc_passed_qty", "flagged_qty"],
+        )
+
+        for row in quality_items:
+            if row.box not in qc_map:
+                qc_map[row.box] = {
+                    "qc_passed_items": 0,
+                    "flagged_items": 0,
+                }
+
+            qc_map[row.box]["qc_passed_items"] += row.qc_passed_qty or 0
+            qc_map[row.box]["flagged_items"] += row.flagged_qty or 0
+
     return {
         "packing_list": packing_list,
         "stock_quality_check": quality_check_name,
         "boxes": [
             {
                 "box_id": row.box_id,
-                "total_items": row.total_item or 0,
-                "verified_items": verified_map.get(row.box_id, 0) or 0,
+                "total_received_items": row.total_item or 0,
+                "total_verified_items": verified_map.get(row.box_id, 0) or 0,
+                "qc_passed_items": qc_map.get(
+                    row.box_id, {}
+                ).get("qc_passed_items", 0),
+                "flagged_items": qc_map.get(
+                    row.box_id, {}
+                ).get("flagged_items", 0),
                 "is_verified": row.is_verified,
             }
             for row in boxes
@@ -189,25 +219,24 @@ def get_verification_box_items(packing_list, box_id, item_id=None, barcode=None)
         quality_item = quality_items.get(row.item)
 
         verified_qty = quality_item.verified_qty if quality_item else 0
+        qc_passed_qty = quality_item.qc_passed_qty if quality_item else 0
         flagged_qty = quality_item.flagged_qty if quality_item else 0
 
         items.append({
             "item_code": row.item,
             "item_name": item_names.get(row.item),
             "barcode": barcode_map.get(row.item),
-            "expected_qty": flt(row.qty),
-            "verified_qty": verified_qty,
+            "total_received_qty": row.qty,
+            "total_verified_qty": verified_qty,
+            "qc_passed_qty": qc_passed_qty,
             "flagged_qty": flagged_qty,
-            "pending_qty": max(row.qty - verified_qty - flagged_qty, 0),
             "uom": row.uom,
         })
 
     return {
+        "stock_quality_check": quality_check_name,
         "packing_list": packing_list,
         "box": box_id,
-        "stock_quality_check": quality_check_name,
-        "total_items": box.total_items or 0,
-        "verified_items": box.verified_items or 0,
         "items": items,
     }
 
@@ -222,7 +251,7 @@ def create_box_verification(data=None):
     box_id = data.get("box")
     item_code = data.get("item")
 
-    verified_qty = flt(data.get("verified_qty"))
+    qc_passed_qty = flt(data.get("qc_passed_qty"))
     flagged_qty = flt(data.get("flagged_qty"))
 
     packing_doc = frappe.get_doc("Packing List", packing_list)
@@ -277,18 +306,15 @@ def create_box_verification(data=None):
         None,
     )
 
-    current_verified_qty = quality_item.verified_qty if quality_item else 0
+    current_qc_passed_qty = quality_item.qc_passed_qty if quality_item else 0
     current_flagged_qty = quality_item.flagged_qty if quality_item else 0
 
     # Accumulate quantities from each scan.
-    new_verified_qty = current_verified_qty + verified_qty
+    new_qc_passed_qty = current_qc_passed_qty + qc_passed_qty
     new_flagged_qty = current_flagged_qty + flagged_qty
+    new_verified_qty = new_qc_passed_qty + new_flagged_qty
 
-    if (
-        verified_qty < 0
-        or flagged_qty < 0
-        or new_verified_qty + new_flagged_qty > expected_qty
-    ):
+    if new_verified_qty > expected_qty:
         frappe.throw(
             _("Verification quantity exceeds expected quantity for Item {0}.").format(
                 item_code
@@ -296,15 +322,15 @@ def create_box_verification(data=None):
         )
 
     if quality_item:
-        quality_item.verified_qty = new_verified_qty
+        quality_item.qc_passed_qty = new_qc_passed_qty
         quality_item.flagged_qty = new_flagged_qty
-
+        quality_item.verified_qty = new_verified_qty
     else:
         quality_check.append("items", {
             "box": box_id,
             "item": item_code,
-            "expected_qty": expected_qty,
             "verified_qty": new_verified_qty,
+            "qc_passed_qty": new_qc_passed_qty,
             "flagged_qty": new_flagged_qty,
             "racked_qty": 0,
             "uom": box_item.uom,
@@ -347,9 +373,9 @@ def create_box_verification(data=None):
         if row.box == box_id
     }
 
-    is_box_verified = all(
+    is_box_verified = bool(box_items) and all(
         item in verified_items
-        and verified_items[item].verified_qty + verified_items[item].flagged_qty == row.qty
+        and verified_items[item].verified_qty == row.qty
         for item, row in box_items.items()
     )
 
@@ -385,7 +411,7 @@ def create_box_verification(data=None):
         )
 
     return {
-        "stock_quality_check": quality_check.name,
+        "draft_quality_check": quality_check.name,
         "message": _("Box Item verification created successfully."),
     }
 
@@ -426,7 +452,7 @@ def complete_box_verification(data=None):
         box = frappe.get_doc("Box", packing_box.box_id)
 
         for row in box.items:
-            expected_items[(packing_box.box_id, row.item)] = flt(row.qty)
+            expected_items[(packing_box.box_id, row.item)] = row.qty
 
     verified_items = set()
 
@@ -434,7 +460,7 @@ def complete_box_verification(data=None):
         key = (row.box, row.item)
         verified_items.add(key)
 
-        if row.verified_qty + row.flagged_qty != expected_items[key]:
+        if row.verified_qty != expected_items[key]:
             frappe.throw(
                 _("Verification is incomplete for Item {0} in Box {1}.").format(
                     row.item, row.box

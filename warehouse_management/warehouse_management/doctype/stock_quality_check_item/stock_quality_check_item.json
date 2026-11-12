@@ -7,9 +7,9 @@
  "field_order": [
   "item",
   "box",
-  "expected_qty",
-  "column_break_mhqf",
   "verified_qty",
+  "column_break_mhqf",
+  "qc_passed_qty",
   "flagged_qty",
   "racked_qty",
   "uom"
@@ -24,20 +24,8 @@
    "reqd": 1
   },
   {
-   "fieldname": "expected_qty",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Expected Qty"
-  },
-  {
    "fieldname": "column_break_mhqf",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "verified_qty",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Verified Qty"
   },
   {
    "fieldname": "flagged_qty",
@@ -64,13 +52,25 @@
    "in_list_view": 1,
    "label": "Box",
    "reqd": 1
+  },
+  {
+   "fieldname": "verified_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Verified Qty"
+  },
+  {
+   "fieldname": "qc_passed_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "QC Passed Qty"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-11-11 12:58:16.659039",
+ "modified": "2026-11-12 15:20:16.644219",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Stock Quality Check Item",
