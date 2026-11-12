@@ -21,7 +21,9 @@
   "section_break_hprj",
   "total_boxes",
   "column_break_vdnc",
-  "received_boxes"
+  "received_boxes",
+  "column_break_uatq",
+  "verified_boxes"
  ],
  "fields": [
   {
@@ -127,13 +129,24 @@
    "label": "Stock Status",
    "options": "\nPacking\nPacked\nReceived\nVerified",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_uatq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "verified_boxes",
+   "fieldtype": "Int",
+   "label": "Verified Boxes",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-11 14:08:41.664268",
+ "modified": "2026-11-11 16:01:12.315503",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List",

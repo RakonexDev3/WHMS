@@ -7,10 +7,12 @@
  "field_order": [
   "box_id",
   "packing_list",
-  "column_break_slcm",
-  "total_items",
   "section_break_wobj",
-  "items"
+  "items",
+  "section_break_guyu",
+  "total_items",
+  "column_break_tkjr",
+  "verified_items"
  ],
  "fields": [
   {
@@ -32,12 +34,8 @@
    "options": "Box Items"
   },
   {
-   "fieldname": "column_break_slcm",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "total_items",
-   "fieldtype": "Float",
+   "fieldtype": "Int",
    "label": "Total Items",
    "read_only": 1
   },
@@ -48,12 +46,26 @@
    "label": "Box ID",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "section_break_guyu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_tkjr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "verified_items",
+   "fieldtype": "Int",
+   "label": "Verified Items",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-20 17:36:39.469141",
+ "modified": "2026-11-11 17:43:38.563164",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Box",
