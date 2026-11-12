@@ -103,7 +103,7 @@ def get_verification_packing_list_details(packing_list):
     return {
         "packing_list": packing_list,
         "stock_quality_check": quality_check_name,
-        "items": [
+        "boxes": [
             {
                 "box_id": row.box_id,
                 "total_items": row.total_item or 0,
