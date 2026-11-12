@@ -217,8 +217,6 @@ doc_events = {
 		"on_submit": [
 			"warehouse_management.events.stock_entry.update_material_request_workflow",
 			"warehouse_management.events.stock_entry.create_bin_assignments_on_stock_entry_submit",
-            "warehouse_management.events.stock_entry.update_packing_list_to_received",
-
 		],
 		"on_cancel": [
 			"warehouse_management.events.stock_entry.revert_material_request_workflow",
