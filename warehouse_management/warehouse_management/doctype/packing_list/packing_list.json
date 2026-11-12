@@ -12,10 +12,10 @@
   "source_warehouse",
   "destination_warehouse",
   "amended_from",
-  "stock_status",
   "column_break_xyqm",
   "material_request",
   "outward_warehouse",
+  "stock_status",
   "section_break_gsxy",
   "items",
   "section_break_hprj",
@@ -158,7 +158,7 @@
    "link_fieldname": "packing_list"
   }
  ],
- "modified": "2026-11-12 11:28:17.031607",
+ "modified": "2026-11-12 11:36:17.048148",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List",
