@@ -68,7 +68,7 @@ def get_packing_list_details(packing_list):
         "boxes": [
             {
                 "box_label": box.box_id,
-                "total_items": flt(box.total_items),
+                "total_items": box.total_items,
             }
             for box in boxes
         ],

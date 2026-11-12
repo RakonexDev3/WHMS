@@ -129,7 +129,7 @@ class BinAssignment(Document):
             elif assignment.assignment_type == "Picking":
                 balance -= qty
 
-        if balance < -0.000001:
+        if balance < 0:
             frappe.throw(
                 f"Cannot reverse Bin Assignment {self.name}. "
                 "Remaining picking quantity exceeds placing quantity."
