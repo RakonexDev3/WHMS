@@ -23,7 +23,8 @@
   "column_break_vdnc",
   "received_boxes",
   "column_break_uatq",
-  "verified_boxes"
+  "verified_boxes",
+  "connections_tab"
  ],
  "fields": [
   {
@@ -140,13 +141,24 @@
    "fieldtype": "Int",
    "label": "Verified Boxes",
    "read_only": 1
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
- "modified": "2026-11-11 16:01:12.315503",
+ "links": [
+  {
+   "link_doctype": "Stock Quality Check",
+   "link_fieldname": "packing_list"
+  }
+ ],
+ "modified": "2026-11-12 11:28:17.031607",
  "modified_by": "Administrator",
  "module": "Warehouse Management",
  "name": "Packing List",
