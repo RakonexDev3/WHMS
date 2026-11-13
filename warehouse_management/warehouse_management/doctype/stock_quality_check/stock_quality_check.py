@@ -1,9 +1,15 @@
-# Copyright (c) 2026, Rakonex and contributors
-# For license information, please see license.txt
-
-# import frappe
+import frappe
 from frappe.model.document import Document
 
 
 class StockQualityCheck(Document):
-	pass
+
+    def on_submit(self):
+        if self.packing_list:
+            frappe.db.set_value(
+                "Packing List",
+                self.packing_list,
+                "stock_status",
+                "Verified",
+                update_modified=True,
+            )
