@@ -3,6 +3,13 @@ from frappe import _
 
 
 def validate_warehouse_type(doc, method=None):
+    """ Validates the warehouse type based on the following rules:
+    1. Sub warehouses cannot be marked as Storage.
+    2. Main warehouses cannot be marked as Bay or Hold.
+    3. If the warehouse type is Bay or Storage, include_in_transaction is set to 1.
+    4. Only one Outward warehouse is allowed under a main warehouse.
+    """
+    
     if doc.is_sub_warehouse and doc.warehouse_type == "Storage":
         frappe.throw(
             _("Sub warehouses cannot be marked as Storage")
