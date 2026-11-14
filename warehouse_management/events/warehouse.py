@@ -10,6 +10,24 @@ def validate_warehouse_type(doc, method=None):
     4. Only one Outward warehouse is allowed under a main warehouse.
     """
     
+    # External Warehouse validations
+    if doc.external:
+
+        if doc.is_sub_warehouse:
+            frappe.throw(
+                _("External warehouses cannot be Sub Warehouses.")
+            )
+
+        if doc.get("main_warehouse"):
+            frappe.throw(
+                _("External warehouses must have Main Warehouse empty.")
+            )
+
+        if doc.warehouse_type != "Consignment":
+            frappe.throw(
+                _("External warehouses must have Warehouse Type Consignment.")
+            )
+
     if doc.is_sub_warehouse and doc.warehouse_type == "Storage":
         frappe.throw(
             _("Sub warehouses cannot be marked as Storage")
