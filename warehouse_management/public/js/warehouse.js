@@ -9,6 +9,16 @@ frappe.ui.form.on("Warehouse", {
             };
         });
     },
+ // Auto-set Consignment when External is checked
+    external(frm) {
+        if (frm.doc.external) {
+            frm.set_value("warehouse_type", "Consignment");
+        }
+        else {
+            frm.set_value("warehouse_type", "");
+        }
+    },
+    
     warehouse_type(frm) {
 		frm.set_value(
 			"include_in_transaction",
