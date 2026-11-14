@@ -50,7 +50,7 @@ fixtures = [
 	{
 		"doctype": "Warehouse Type",
 		"filters": [
-			["name", "in", ["Bay", "Storage", "Hold", "Outward"]]
+			["name", "in", ["Bay", "Storage", "Hold", "Outward","Consignment"]]
 		]
 	},
 ]

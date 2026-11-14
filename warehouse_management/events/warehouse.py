@@ -10,8 +10,7 @@ def validate_warehouse_type(doc, method=None):
     4. Only one Outward warehouse is allowed under a main warehouse.
     """
     
-=======
-       # External Warehouse validations
+    # External Warehouse validations
     if doc.external:
 
         if doc.is_sub_warehouse:
